@@ -1,0 +1,18 @@
+services:
+  database:
+    image: postgres:latest
+    shm_size: 128MB
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    secrets:
+      - postgres_password
+    environment:
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_DB=file-storage-db
+
+secrets:
+  postgres_password:
+    file: ./secrets/.psql_password
+
+volumes:
+  postgres_data:
