@@ -46,9 +46,11 @@ public class AuthController {
     }
 
     @PostMapping("/sign-up")
-    public ResponseEntity<UserDto> performSignUp(@RequestParam String username, @RequestParam String password, UserDto userDto) {
+    public ResponseEntity<UserDto> performSignUp(@RequestParam String username, @RequestParam String password, UserDto userDto,
+                                                 HttpServletRequest request, HttpServletResponse response) {
         User user = new User(username, password);
         registrationService.registerUser(user);
+        performAuthentication(username, password, request, response);
         userDto.setUsername(user.getUsername());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(userDto);
@@ -56,16 +58,8 @@ public class AuthController {
 
     @PostMapping("/sign-in")
     public ResponseEntity<UserDto> performSignIn(@RequestParam String username, @RequestParam String password, UserDto userDto,
-                                          HttpServletRequest request, HttpServletResponse response
-    ) {
-        Authentication userToken = new UsernamePasswordAuthenticationToken(username, password);
-        Authentication authenticatedUser = authenticationManager.authenticate(userToken);
-
-        SecurityContext context = securityContextHolderStrategy.createEmptyContext();
-        context.setAuthentication(authenticatedUser);
-        securityContextHolderStrategy.setContext(context);
-        securityContextRepository.saveContext(context, request, response);
-
+                                                 HttpServletRequest request, HttpServletResponse response) {
+        performAuthentication(username, password, request, response);
         userDto.setUsername(username);
 
         return ResponseEntity.status(HttpStatus.OK).body(userDto);
@@ -75,6 +69,16 @@ public class AuthController {
     public ResponseEntity<Void> performLogout(Authentication authentication, HttpServletRequest request, HttpServletResponse response) {
         logoutHandler.logout(request, response, authentication);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    private void performAuthentication(String username, String password, HttpServletRequest request, HttpServletResponse response) {
+        Authentication userToken = new UsernamePasswordAuthenticationToken(username, password);
+        Authentication authenticatedUser = authenticationManager.authenticate(userToken);
+
+        SecurityContext context = securityContextHolderStrategy.createEmptyContext();
+        context.setAuthentication(authenticatedUser);
+        securityContextHolderStrategy.setContext(context);
+        securityContextRepository.saveContext(context, request, response);
     }
 
 }
