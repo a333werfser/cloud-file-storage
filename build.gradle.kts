@@ -23,6 +23,8 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.postgresql:postgresql")
 	implementation("org.liquibase:liquibase-core")
+	implementation("org.hibernate.validator:hibernate-validator")
+	implementation("org.glassfish.expressly:expressly:6.0.0")
 
 	implementation(platform("org.testcontainers:testcontainers-bom:1.21.3"))
 	testImplementation("org.testcontainers:testcontainers")

@@ -14,10 +14,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("test")
 @Testcontainers
@@ -40,13 +42,13 @@ public class AuthControllerTest {
     }
 
     @Test
-    void whenNoAuthenticatedUser_thenUnauthorizedStatus() throws Exception {
+    void whenUnauthenticatedUser_thenUnauthenticated() throws Exception {
         mockMvc.perform(get("/test-endpoint")).andExpect(unauthenticated());
     }
 
     @WithMockUser
     @Test
-    void whenAuthenticatedUser_thenActualStatus() throws Exception {
+    void whenAuthenticatedUser_thenAuthenticated() throws Exception {
         mockMvc.perform(get("/test-endpoint")).andExpect(authenticated());
     }
 
@@ -68,7 +70,7 @@ public class AuthControllerTest {
 
     @WithAnonymousUser
     @Test
-    void whenUserSignIn_thenUserIsAuthenticated() throws Exception {
+    void whenUserSignsIn_thenUserIsAuthenticated() throws Exception {
         User user = new User("username", "password");
         registrationService.registerUser(user);
         mockMvc.perform(
@@ -76,5 +78,68 @@ public class AuthControllerTest {
                         .param("password", "password")
         ).andExpect(authenticated());
     }
+
+    @WithAnonymousUser
+    @Test
+    void whenNotRegisteredUserSignsIn_thenUserIsUnauthenticated() throws Exception {
+        mockMvc.perform(
+                post("/auth/sign-in").param("username", "username")
+                        .param("password", "password")
+        ).andExpect(unauthenticated());
+    }
+
+    /**
+     * Правила валидации:
+     * 1. Логин должен быть уникальным or 409
+     * 2. Не должен содержать специальных символов или пробелов or 400
+     * 3. Не должен быть длиннее 20 символов или короче 4 or 400
+     *
+     * 4. Пароль не должен быть длиннее 20 символов или короче 8
+     */
+
+//    @Test
+//    void whenSignUpWithNotUniqueUsername_thenConflictStatus() throws Exception {
+//        registrationService.registerUser(new User("user", "password"));
+//        mockMvc.perform(
+//                post("/auth/sign-up").param("username", "user")
+//                        .param("password", "password")
+//        ).andExpect(status().isConflict());
+//    }
+//
+//    @Test
+//    void whenSignUpWithTooLongUsername_thenBadRequestStatus() throws Exception {
+//        String longUsername = "xjksnskasjhfauiwoqrqwoiww";
+//        mockMvc.perform(
+//                post("/auth/sign-up").param("username", longUsername)
+//                        .param("password", "password")
+//        ).andExpect(status().isBadRequest());
+//    }
+//
+//    @Test
+//    void whenSignUpWithTooShortUsername_thenBadRequestStatus() throws Exception {
+//        String shortUsername = "xxx";
+//        mockMvc.perform(
+//                post("/auth/sign-up").param("username", shortUsername)
+//                        .param("password", "password")
+//        ).andExpect(status().isBadRequest());
+//    }
+//
+//    @Test
+//    void whenSignUpWithTooLongPassword_thenBadRequestStatus() throws Exception {
+//        String longPassword = "xjksnskasjhfauiwoqrqwoiww";
+//        mockMvc.perform(
+//                post("/auth/sign-up").param("username", "username")
+//                        .param("password", longPassword)
+//        ).andExpect(status().isBadRequest());
+//    }
+//
+//    @Test
+//    void whenSignUpWithTooShortPassword_thenBadRequestStatus() throws Exception {
+//        String shortPassword = "xxx";
+//        mockMvc.perform(
+//                post("/auth/sign-up").param("username", "username")
+//                        .param("password", shortPassword)
+//        ).andExpect(status().isBadRequest());
+//    }
 
 }
