@@ -1,5 +1,8 @@
 package edu.example.project;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.example.project.dto.AuthRequestDto;
+import edu.example.project.dto.ResponseMessageDto;
 import edu.example.project.model.User;
 import edu.example.project.repository.UserRepository;
 import edu.example.project.service.RegistrationService;
@@ -8,10 +11,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -19,6 +24,8 @@ import static org.springframework.security.test.web.servlet.response.SecurityMoc
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ActiveProfiles("test")
@@ -28,13 +35,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class AuthControllerTest {
 
     @Autowired
+    ObjectMapper objectMapper;
+
+    @Autowired
+    MockMvc mockMvc;
+
+    @Autowired
     UserRepository userRepository;
 
     @Autowired
     RegistrationService registrationService;
-
-    @Autowired
-    MockMvc mockMvc;
 
     @BeforeEach
     void resetDatabase() {
@@ -54,92 +64,68 @@ public class AuthControllerTest {
 
     @WithMockUser
     @Test
-    void whenUserLogsOut_thenUserIsUnauthenticated() throws Exception {
+    void whenUserLogsOut_thenUserBecomesUnauthenticated() throws Exception {
         mockMvc.perform(post("/auth/sign-out")).andExpect(unauthenticated());
     }
 
     @WithAnonymousUser
     @Test
-    void whenUserSignsUp_thenUserIsAuthenticated() throws Exception {
+    void whenUserSignsUp_thenUserBecomesAuthenticated() throws Exception {
+        String json = objectMapper.writeValueAsString(new AuthRequestDto("username", "password"));
+
         mockMvc.perform(get("/test-endpoint")).andExpect(unauthenticated());
         mockMvc.perform(
-                post("/auth/sign-up").param("username", "username")
-                        .param("password", "password")
+                post("/auth/sign-up").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
         ).andExpect(authenticated());
     }
 
     @WithAnonymousUser
     @Test
-    void whenUserSignsIn_thenUserIsAuthenticated() throws Exception {
+    void whenUserSignsIn_thenUserBecomesAuthenticated() throws Exception {
         User user = new User("username", "password");
+        String json = objectMapper.writeValueAsString(new AuthRequestDto(user.getUsername(), user.getPassword()));
+
         registrationService.registerUser(user);
         mockMvc.perform(
-                post("/auth/sign-in").param("username", "username")
-                        .param("password", "password")
+                post("/auth/sign-in").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
         ).andExpect(authenticated());
     }
 
     @WithAnonymousUser
     @Test
     void whenNotRegisteredUserSignsIn_thenUserIsUnauthenticated() throws Exception {
+        String json = objectMapper.writeValueAsString(new AuthRequestDto("username", "password"));
+
         mockMvc.perform(
-                post("/auth/sign-in").param("username", "username")
-                        .param("password", "password")
+                post("/auth/sign-in").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
         ).andExpect(unauthenticated());
     }
 
-    /**
-     * Правила валидации:
-     * 1. Логин должен быть уникальным or 409
-     * 2. Не должен содержать специальных символов или пробелов or 400
-     * 3. Не должен быть длиннее 20 символов или короче 4 or 400
-     *
-     * 4. Пароль не должен быть длиннее 20 символов или короче 8
-     */
+    @Test
+    void whenUserSignsUpWithInvalidCredentials_thenBadRequest() throws Exception {
+        String json = objectMapper.writeValueAsString(new AuthRequestDto("@.//", "pasw  pasw"));
 
-//    @Test
-//    void whenSignUpWithNotUniqueUsername_thenConflictStatus() throws Exception {
-//        registrationService.registerUser(new User("user", "password"));
-//        mockMvc.perform(
-//                post("/auth/sign-up").param("username", "user")
-//                        .param("password", "password")
-//        ).andExpect(status().isConflict());
-//    }
-//
-//    @Test
-//    void whenSignUpWithTooLongUsername_thenBadRequestStatus() throws Exception {
-//        String longUsername = "xjksnskasjhfauiwoqrqwoiww";
-//        mockMvc.perform(
-//                post("/auth/sign-up").param("username", longUsername)
-//                        .param("password", "password")
-//        ).andExpect(status().isBadRequest());
-//    }
-//
-//    @Test
-//    void whenSignUpWithTooShortUsername_thenBadRequestStatus() throws Exception {
-//        String shortUsername = "xxx";
-//        mockMvc.perform(
-//                post("/auth/sign-up").param("username", shortUsername)
-//                        .param("password", "password")
-//        ).andExpect(status().isBadRequest());
-//    }
-//
-//    @Test
-//    void whenSignUpWithTooLongPassword_thenBadRequestStatus() throws Exception {
-//        String longPassword = "xjksnskasjhfauiwoqrqwoiww";
-//        mockMvc.perform(
-//                post("/auth/sign-up").param("username", "username")
-//                        .param("password", longPassword)
-//        ).andExpect(status().isBadRequest());
-//    }
-//
-//    @Test
-//    void whenSignUpWithTooShortPassword_thenBadRequestStatus() throws Exception {
-//        String shortPassword = "xxx";
-//        mockMvc.perform(
-//                post("/auth/sign-up").param("username", "username")
-//                        .param("password", shortPassword)
-//        ).andExpect(status().isBadRequest());
-//    }
+        mockMvc.perform(
+                post("/auth/sign-up").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
+        ).andExpectAll(status().isBadRequest(), content().contentType(MediaType.APPLICATION_JSON_VALUE));
+    }
+
+    // неуникальный логин -> статус код и месседж
+    // кастомная 500 ошибка
+    // логинится незарегистрированный пользователь
+
+    @WithAnonymousUser
+    @Test
+    void whenNotRegisteredUserSignsIn_thenCorrectJsonMessageAndUnauthenticatedStatus() throws Exception {
+        String json = objectMapper.writeValueAsString(new AuthRequestDto("username", "password"));
+        String mockedJson = objectMapper.writeValueAsString(new ResponseMessageDto("User not found"));
+        String actualJson;
+
+        MvcResult results = mockMvc.perform(
+                post("/auth/sign-in").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
+        ).andExpectAll(status().isUnauthorized(), content().contentType(MediaType.APPLICATION_JSON_VALUE)).andReturn();
+        actualJson = results.getResponse().getContentAsString();
+        assertTrue(mockedJson.equals(actualJson));
+    }
 
 }

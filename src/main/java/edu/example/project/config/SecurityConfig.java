@@ -2,6 +2,7 @@ package edu.example.project.config;
 
 import edu.example.project.repository.UserRepository;
 import edu.example.project.security.UserDetailsServiceImpl;
+import edu.example.project.security.UserNotFoundEntryPoint;
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,8 +37,8 @@ public class SecurityConfig {
                         .requireExplicitSave(true)
                 )
                 .exceptionHandling( exception -> exception
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-                )
+                        .authenticationEntryPoint(new UserNotFoundEntryPoint())
+                ) //new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED) was here as entryPoint
                 .csrf(csrf -> csrf.disable());
 
         return http.build();
