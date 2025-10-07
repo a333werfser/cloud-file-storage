@@ -9,6 +9,7 @@ import edu.example.project.service.RegistrationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,26 +31,18 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
-    private RegistrationService registrationService;
+    private final RegistrationService registrationService;
 
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
-    private SecurityContextRepository securityContextRepository;
+    private final SecurityContextRepository securityContextRepository;
 
-    private SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder.getContextHolderStrategy();
+    private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder.getContextHolderStrategy();
 
-    private LogoutHandler logoutHandler = new SecurityContextLogoutHandler();
-
-    @Autowired
-    public AuthController(RegistrationService registrationService,
-                          AuthenticationManager authenticationManager,
-                          SecurityContextRepository securityContextRepository) {
-        this.registrationService = registrationService;
-        this.authenticationManager = authenticationManager;
-        this.securityContextRepository = securityContextRepository;
-    }
+    private final LogoutHandler logoutHandler = new SecurityContextLogoutHandler();
 
     @PostMapping("/sign-up")
     public ResponseEntity<UserDto> performSignUp(@Valid @RequestBody AuthRequestDto userRequest, UserDto userDto,

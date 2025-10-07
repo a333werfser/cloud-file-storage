@@ -25,6 +25,7 @@ dependencies {
 	implementation("org.liquibase:liquibase-core")
 	implementation("org.hibernate.validator:hibernate-validator")
 	implementation("org.glassfish.expressly:expressly:6.0.0")
+	implementation("io.minio:minio:8.6.0")
 
 	implementation(platform("org.testcontainers:testcontainers-bom:1.21.3"))
 	testImplementation("org.testcontainers:testcontainers")
