@@ -17,6 +17,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.logout.LogoutHandler;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 
@@ -38,7 +40,7 @@ public class SecurityConfig {
                 )
                 .exceptionHandling( exception -> exception
                         .authenticationEntryPoint(new UserNotFoundEntryPoint())
-                ) //new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED) was here as entryPoint
+                )
                 .csrf(csrf -> csrf.disable());
 
         return http.build();
@@ -62,6 +64,11 @@ public class SecurityConfig {
     @Bean
     public SecurityContextRepository securityContextRepository() {
         return new HttpSessionSecurityContextRepository();
+    }
+
+    @Bean
+    public LogoutHandler logoutHandler() {
+        return new SecurityContextLogoutHandler();
     }
 
     @Bean

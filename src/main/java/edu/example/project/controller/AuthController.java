@@ -34,15 +34,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final RegistrationService registrationService;
-
-    private final AuthenticationManager authenticationManager;
+    private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder.getContextHolderStrategy();
 
     private final SecurityContextRepository securityContextRepository;
 
-    private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder.getContextHolderStrategy();
+    private final AuthenticationManager authenticationManager;
 
-    private final LogoutHandler logoutHandler = new SecurityContextLogoutHandler();
+    private final LogoutHandler logoutHandler;
+
+    private final RegistrationService registrationService;
 
     @PostMapping("/sign-up")
     public ResponseEntity<UserDto> performSignUp(@Valid @RequestBody AuthRequestDto userRequest, UserDto userDto,
