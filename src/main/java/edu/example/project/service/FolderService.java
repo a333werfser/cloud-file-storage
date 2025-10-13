@@ -15,19 +15,19 @@ import java.io.ByteArrayInputStream;
 
 @Service
 @RequiredArgsConstructor
-public class FolderService implements PathResolver {
+public class FolderService implements PathResolverService {
 
     private final MinioClient minioClient;
 
     private final BucketProperties bucketProperties;
 
-    protected void createFolder(String name) {
+    protected void createFolder(String path) {
         try {
             minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(bucketProperties.getDefaultName())
-                            .object(name)
-                            .stream(new ByteArrayInputStream(new byte[] {}), 0, -1)
+                            .object(path)
+                            .stream(new ByteArrayInputStream(new byte[]{}), 0, -1)
                             .build()
             );
         } catch (Exception exception) {

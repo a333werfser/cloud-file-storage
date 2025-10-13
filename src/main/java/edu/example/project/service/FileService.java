@@ -6,7 +6,7 @@ import io.minio.StatObjectResponse;
 import org.springframework.stereotype.Service;
 
 @Service
-public class FileService implements PathResolver{
+public class FileService implements PathResolverService {
 
     protected ResourceDto mapFileToDto(String path, StatObjectResponse object) {
         ResourceDto resourceDto = new ResourceDto();
