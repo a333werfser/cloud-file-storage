@@ -8,12 +8,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class FileService implements PathResolverService {
 
-    protected ResourceDto mapFileToDto(String path, StatObjectResponse object) {
+    protected ResourceDto mapFileToDto(String path, Long size) {
         ResourceDto resourceDto = new ResourceDto();
         path = eraseUserRootFolder(path);
         resourceDto.setPath(resolvePathToFile(path));
         resourceDto.setName(resolveFileName(path));
-        resourceDto.setSize(object.size());
+        resourceDto.setSize(size);
         resourceDto.setType("FILE");
         return resourceDto;
     }

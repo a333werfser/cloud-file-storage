@@ -1,26 +1,16 @@
 package edu.example.project.service;
 
-import edu.example.project.config.BucketProperties;
 import edu.example.project.dto.ResourceDto;
 import edu.example.project.exception.ResourceNotFoundException;
 import io.minio.*;
-import io.minio.errors.*;
-import io.minio.messages.DeleteError;
-import io.minio.messages.DeleteObject;
-import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class ResourceService {
 
-    private final MinioClient minioClient;
-
-    private final BucketProperties bucketProperties;
+    private final MinioService minioService;
 
     private final FileService fileService;
 
@@ -28,10 +18,9 @@ public class ResourceService {
 
     public ResourceDto getResourceInfo(String path, int userId) throws ResourceNotFoundException {
         String userContextPath = redirectToUserRootFolder(path, userId);
-        StatObjectResponse statObject = getStatObject(userContextPath);
-
+        StatObjectResponse statObject = findResourceInfo(userContextPath);
         if (getResourceType(userContextPath) == ResourceType.FILE) {
-            return fileService.mapFileToDto(userContextPath, statObject);
+            return fileService.mapFileToDto(userContextPath, statObject.size());
         }
         else {
             return folderService.mapFolderToDto(userContextPath);
@@ -40,93 +29,37 @@ public class ResourceService {
 
     public void removeResource(String path, int userId) throws ResourceNotFoundException {
         String userContextPath = redirectToUserRootFolder(path, userId);
-        StatObjectResponse statObject = getStatObject(userContextPath);
+        findResourceInfo(userContextPath);
         if (getResourceType(userContextPath) == ResourceType.FILE) {
-            removeObject(userContextPath);
+            minioService.removeObject(userContextPath);
         }
         else {
-            if (getObjectsList(userContextPath).iterator().hasNext()) {
-                removeObjects(userContextPath);
-                removeObject(userContextPath);
+            if (folderService.pathHasObjectsInside(userContextPath)) {
+                minioService.removeObjectsFrom(userContextPath);
+                minioService.removeObject(userContextPath);
             }
             else {
-                removeObject(userContextPath);
+                minioService.removeObject(userContextPath);
             }
         }
     }
 
-    public void removeObject(String path) {
+    private StatObjectResponse findResourceInfo(String path) throws ResourceNotFoundException {
         try {
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(bucketProperties.getDefaultName())
-                            .object(path)
-                            .build()
-            );
-        } catch (Exception exception) {
-            throw new RuntimeException(exception);
-        }
-    }
-
-    public void removeObjects(String path) {
-        List<DeleteObject> deleteObjects = new ArrayList<>();
-        getObjectsList(path).forEach(
-                object -> {
-                    try {
-                        deleteObjects.add(new DeleteObject(object.get().objectName()));
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-        Iterable<Result<DeleteError>> results = minioClient.removeObjects(
-                RemoveObjectsArgs.builder()
-                        .bucket(bucketProperties.getDefaultName())
-                        .objects(deleteObjects)
-                        .build()
-        );
-        for (Result<DeleteError> result : results) {
-            try {
-                result.get();
-            } catch(Exception e) {
-                throw new RuntimeException(e);
+            return minioService.statObject(path);
+        } catch (ResourceNotFoundException exception) {
+            if (getResourceType(path) == ResourceType.FILE) {
+                throw new ResourceNotFoundException("File does not exist", exception);
             }
-        }
-    }
-
-    public Iterable<Result<Item>> getObjectsList(String prefix) {
-        return minioClient.listObjects(
-               ListObjectsArgs.builder()
-                       .bucket(bucketProperties.getDefaultName())
-                       .prefix(prefix)
-                       .recursive(true)
-                       .build()
-        );
-    }
-
-    private StatObjectResponse getStatObject(String path) throws ResourceNotFoundException {
-        try {
-            return minioClient.statObject(
-                    StatObjectArgs.builder()
-                            .bucket(bucketProperties.getDefaultName())
-                            .object(path)
-                            .build()
-            );
-        } catch (Exception exception) {
-            if (exception instanceof ErrorResponseException && exception.getMessage().equals("Object does not exist")) {
-                if (getResourceType(path)  == ResourceType.FILE) {
-                    throw new ResourceNotFoundException("File does not exist", exception);
+            else {
+                if (folderService.pathHasObjectsInside(path)) {
+                    folderService.createFolder(path);
+                    return findResourceInfo(path);
                 }
                 else {
-                    if (folderService.virtualFolderExists(path)) {
-                        folderService.createFolder(path);
-                        return getStatObject(path);
-                    }
-                    else {
-                        throw new ResourceNotFoundException("Directory does not exist", exception);
-                    }
+                    throw new ResourceNotFoundException("Directory does not exist", exception);
                 }
             }
-            throw new RuntimeException(exception);
         }
     }
 

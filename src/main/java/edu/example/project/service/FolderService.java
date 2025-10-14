@@ -1,38 +1,18 @@
 package edu.example.project.service;
 
-import edu.example.project.config.BucketProperties;
 import edu.example.project.dto.ResourceDto;
 import edu.example.project.exception.BadResourceTypeException;
-import io.minio.ListObjectsArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.Result;
-import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.io.ByteArrayInputStream;
 
 @Service
 @RequiredArgsConstructor
 public class FolderService implements PathResolverService {
 
-    private final MinioClient minioClient;
-
-    private final BucketProperties bucketProperties;
+    private final MinioService minioService;
 
     protected void createFolder(String path) {
-        try {
-            minioClient.putObject(
-                    PutObjectArgs.builder()
-                            .bucket(bucketProperties.getDefaultName())
-                            .object(path)
-                            .stream(new ByteArrayInputStream(new byte[]{}), 0, -1)
-                            .build()
-            );
-        } catch (Exception exception) {
-            throw new RuntimeException(exception);
-        }
+        minioService.putEmptyObject(path);
     }
 
     protected ResourceDto mapFolderToDto(String path) {
@@ -44,15 +24,8 @@ public class FolderService implements PathResolverService {
         return resourceDto;
     }
 
-    public boolean virtualFolderExists(String path) {
-        Iterable<Result<Item>> objects = minioClient.listObjects(
-                ListObjectsArgs.builder()
-                        .bucket(bucketProperties.getDefaultName())
-                        .prefix(path)
-                        .maxKeys(1)
-                        .build()
-        );
-        return objects.iterator().hasNext();
+    protected boolean pathHasObjectsInside(String path) {
+        return minioService.listObjects(path, 1).iterator().hasNext();
     }
 
     private String resolvePathToFolder(String path) {
