@@ -18,6 +18,18 @@ public class FileService implements PathResolverService {
         return resourceDto;
     }
 
+    protected String resolveFileName(String path) {
+        if (path.endsWith("/")) {
+            throw new BadResourceTypeException("Path to file expected");
+        }
+        if (!path.contains("/")) {
+            return path;
+        }
+        else {
+            return path.substring(path.lastIndexOf("/") + 1);
+        }
+    }
+
     private String resolvePathToFile(String path) {
         if (path.endsWith("/")) {
             throw new BadResourceTypeException("Path to file expected");
@@ -27,18 +39,6 @@ public class FileService implements PathResolverService {
         }
         else {
             return "";
-        }
-    }
-
-    private String resolveFileName(String path) {
-        if (path.endsWith("/")) {
-            throw new BadResourceTypeException("Path to file expected");
-        }
-        if (!path.contains("/")) {
-            return path;
-        }
-        else {
-            return path.substring(path.lastIndexOf("/") + 1);
         }
     }
 

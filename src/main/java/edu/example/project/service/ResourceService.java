@@ -6,6 +6,9 @@ import io.minio.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+
 @Service
 @RequiredArgsConstructor
 public class ResourceService {

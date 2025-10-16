@@ -1,14 +1,18 @@
 package edu.example.project;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.example.project.exception.ResourceNotFoundException;
+import edu.example.project.config.BucketProperties;
 import edu.example.project.service.FolderService;
-import edu.example.project.service.ResourceService;
+import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
-import io.minio.RemoveObjectArgs;
+import io.minio.errors.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 @SpringBootTest
 public class ResourceServiceTest {
@@ -17,31 +21,21 @@ public class ResourceServiceTest {
     MinioClient minioClient;
 
     @Autowired
-    ResourceService resourceService;
-
-    @Autowired
-    ObjectMapper objectMapper;
+    BucketProperties bucketProperties;
 
     @Autowired
     FolderService folderService;
 
     @Test
-    void test() {
-        try {
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket("user-files")
-                            .object("file.txt")
-                            .build()
-            );
-        } catch (Exception exception) {
-            throw new RuntimeException(exception);
+    void test() throws ServerException, InsufficientDataException, ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
+        try (InputStream stream = minioClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket(bucketProperties.getDefaultName())
+                        .object("file.txt")
+                        .build()
+        )) {
+            int i = 1;
         }
-    }
-
-    @Test
-    void test2() throws ResourceNotFoundException {
-        resourceService.removeResource("fold/", 2);
     }
 
 }

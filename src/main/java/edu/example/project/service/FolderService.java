@@ -2,14 +2,54 @@ package edu.example.project.service;
 
 import edu.example.project.dto.ResourceDto;
 import edu.example.project.exception.BadResourceTypeException;
+import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 @RequiredArgsConstructor
 public class FolderService implements PathResolverService {
 
     private final MinioService minioService;
+
+    /**
+     *
+     * @param path
+     */
+    private byte[] zipFolder(String path) throws IOException {
+        try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+             BufferedOutputStream bufferedOut = new BufferedOutputStream(byteOut);
+             ZipOutputStream zipOut = new ZipOutputStream(bufferedOut)
+        ) {
+            if (pathHasObjectsInside(path)) {
+                minioService.listObjects(path).forEach((result) -> {
+                    try {
+                        Item objectInfo = result.get();
+                        String key = objectInfo.objectName();
+                        InputStream objectIn = minioService.getObject(key);
+                        zipOut.putNextEntry(new ZipEntry(resolveZipEntryName(path, key)));
+                        zipOut.write(objectIn.readAllBytes());
+                        zipOut.closeEntry();
+                    } catch (Exception exception) {
+                        throw new RuntimeException(exception);
+                    }
+                });
+            }
+            else {
+                zipOut.putNextEntry(new ZipEntry(resolveFolderName(path)));
+                zipOut.write(new byte[0]);
+                zipOut.closeEntry();
+            }
+            return byteOut.toByteArray();
+        }
+    }
 
     protected void createFolder(String path) {
         minioService.putEmptyObject(path);
@@ -26,6 +66,10 @@ public class FolderService implements PathResolverService {
 
     protected boolean pathHasObjectsInside(String path) {
         return minioService.listObjects(path, 1).iterator().hasNext();
+    }
+
+    private String resolveZipEntryName(String pathToFolder, String fullPath) {
+        return fullPath.substring(pathToFolder.length());
     }
 
     private String resolvePathToFolder(String path) {

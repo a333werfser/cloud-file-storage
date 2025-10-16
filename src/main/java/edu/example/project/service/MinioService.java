@@ -3,7 +3,7 @@ package edu.example.project.service;
 import edu.example.project.config.BucketProperties;
 import edu.example.project.exception.ResourceNotFoundException;
 import io.minio.*;
-import io.minio.errors.ErrorResponseException;
+import io.minio.errors.*;
 import io.minio.messages.DeleteError;
 import io.minio.messages.DeleteObject;
 import io.minio.messages.Item;
@@ -11,6 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -107,6 +111,19 @@ public class MinioService {
             } catch(Exception exception) {
                 throw new RuntimeException(exception);
             }
+        }
+    }
+
+    public InputStream getObject(String path) {
+        try {
+            return minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(bucketProperties.getDefaultName())
+                            .object(path)
+                            .build()
+            );
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
         }
     }
 
