@@ -19,11 +19,8 @@ public class FolderService implements PathResolverService {
 
     private final MinioService minioService;
 
-    /**
-     *
-     * @param path
-     */
-    private byte[] zipFolder(String path) throws IOException {
+    protected byte[] getFolderBinaryContentZipped(String path) throws IOException {
+        ensureFolderPath(path);
         try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
              BufferedOutputStream bufferedOut = new BufferedOutputStream(byteOut);
              ZipOutputStream zipOut = new ZipOutputStream(bufferedOut)
@@ -33,10 +30,11 @@ public class FolderService implements PathResolverService {
                     try {
                         Item objectInfo = result.get();
                         String key = objectInfo.objectName();
-                        InputStream objectIn = minioService.getObject(key);
-                        zipOut.putNextEntry(new ZipEntry(resolveZipEntryName(path, key)));
-                        zipOut.write(objectIn.readAllBytes());
-                        zipOut.closeEntry();
+                        try (InputStream objectIn = minioService.getObject(key)) {
+                            zipOut.putNextEntry(new ZipEntry(resolveZipEntryName(path, key)));
+                            zipOut.write(objectIn.readAllBytes());
+                            zipOut.closeEntry();
+                        }
                     } catch (Exception exception) {
                         throw new RuntimeException(exception);
                     }
@@ -51,11 +49,8 @@ public class FolderService implements PathResolverService {
         }
     }
 
-    protected void createFolder(String path) {
-        minioService.putEmptyObject(path);
-    }
-
     protected ResourceDto mapFolderToDto(String path) {
+        ensureFolderPath(path);
         ResourceDto resourceDto = new ResourceDto();
         path = eraseUserRootFolder(path);
         resourceDto.setPath(resolvePathToFolder(path));
@@ -64,7 +59,13 @@ public class FolderService implements PathResolverService {
         return resourceDto;
     }
 
+    protected void createFolder(String path) {
+        ensureFolderPath(path);
+        minioService.putEmptyObject(path);
+    }
+
     protected boolean pathHasObjectsInside(String path) {
+        ensureFolderPath(path);
         return minioService.listObjects(path, 1).iterator().hasNext();
     }
 
@@ -72,34 +73,34 @@ public class FolderService implements PathResolverService {
         return fullPath.substring(pathToFolder.length());
     }
 
+    private int countFoldersNumber(String path) {
+        return path.length() - path.replace("/", "").length();
+    }
+
     private String resolvePathToFolder(String path) {
-        if (!path.endsWith("/")) {
-            throw new BadResourceTypeException("Path to folder expected");
-        }
         if (countFoldersNumber(path) == 1) {
             return "";
         }
         else {
-            String pathWithoutLastSlash = path.substring(0, path.lastIndexOf("/"));
-            return pathWithoutLastSlash.substring(0, pathWithoutLastSlash.lastIndexOf("/") + 1);
+            path = path.substring(0, path.lastIndexOf("/"));
+            return path.substring(0, path.lastIndexOf("/") + 1);
         }
     }
 
     private String resolveFolderName(String path) {
-        if (!path.endsWith("/")) {
-            throw new BadResourceTypeException("Path to folder expected");
-        }
         if (countFoldersNumber(path) == 1) {
             return path;
         }
         else {
-            String pathWithoutLastSlash = path.substring(0, path.lastIndexOf("/"));
-            return pathWithoutLastSlash.substring(pathWithoutLastSlash.lastIndexOf("/") + 1) + "/";
+            path = path.substring(0, path.lastIndexOf("/"));
+            return path.substring(path.lastIndexOf("/") + 1) + "/";
         }
     }
 
-    private int countFoldersNumber(String path) {
-        return path.length() - path.replace("/", "").length();
+    private void ensureFolderPath(String path) {
+        if (!path.endsWith("/")) {
+            throw new BadResourceTypeException("Path to folder expected");
+        }
     }
 
 }

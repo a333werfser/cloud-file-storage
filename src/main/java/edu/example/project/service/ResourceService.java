@@ -19,30 +19,38 @@ public class ResourceService {
 
     private final FolderService folderService;
 
-    public ResourceDto getResourceInfo(String path, int userId) throws ResourceNotFoundException {
-        String userContextPath = redirectToUserRootFolder(path, userId);
-        StatObjectResponse statObject = findResourceInfo(userContextPath);
-        if (getResourceType(userContextPath) == ResourceType.FILE) {
-            return fileService.mapFileToDto(userContextPath, statObject.size());
+    public byte[] getResourceBinaryContent(String path, int userId) throws ResourceNotFoundException, IOException {
+        StatObjectResponse statObject = findResourceInfo(redirectToUserRootFolder(path, userId));
+        if (getResourceType(statObject.object()) == ResourceType.FILE) {
+            return fileService.getFileBinaryContent(statObject.object());
         }
         else {
-            return folderService.mapFolderToDto(userContextPath);
+            return folderService.getFolderBinaryContentZipped(statObject.object());
+        }
+    }
+
+    public ResourceDto getResourceInfo(String path, int userId) throws ResourceNotFoundException {
+        StatObjectResponse statObject = findResourceInfo(redirectToUserRootFolder(path, userId));
+        if (getResourceType(statObject.object()) == ResourceType.FILE) {
+            return fileService.mapFileToDto(statObject.object(), statObject.size());
+        }
+        else {
+            return folderService.mapFolderToDto(statObject.object());
         }
     }
 
     public void removeResource(String path, int userId) throws ResourceNotFoundException {
-        String userContextPath = redirectToUserRootFolder(path, userId);
-        findResourceInfo(userContextPath);
-        if (getResourceType(userContextPath) == ResourceType.FILE) {
-            minioService.removeObject(userContextPath);
+        StatObjectResponse statObject = findResourceInfo(redirectToUserRootFolder(path, userId));
+        if (getResourceType(statObject.object()) == ResourceType.FILE) {
+            minioService.removeObject(statObject.object());
         }
         else {
-            if (folderService.pathHasObjectsInside(userContextPath)) {
-                minioService.removeObjectsFrom(userContextPath);
-                minioService.removeObject(userContextPath);
+            if (folderService.pathHasObjectsInside(statObject.object())) {
+                minioService.removeObjectsFrom(statObject.object());
+                minioService.removeObject(statObject.object());
             }
             else {
-                minioService.removeObject(userContextPath);
+                minioService.removeObject(statObject.object());
             }
         }
     }
