@@ -26,6 +26,25 @@ public class MinioService {
 
     private final BucketProperties bucketProperties;
 
+    protected void copyObject(String from, String to) {
+        try {
+            minioClient.copyObject(
+                    CopyObjectArgs.builder()
+                            .bucket(bucketProperties.getDefaultName())
+                            .object(to)
+                            .source(
+                                    CopySource.builder()
+                                            .bucket(bucketProperties.getDefaultName())
+                                            .object(from)
+                                            .build()
+                            )
+                            .build()
+            );
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        }
+    }
+
     protected StatObjectResponse statObject(String path) throws ResourceNotFoundException {
         try {
             return minioClient.statObject(
@@ -114,7 +133,7 @@ public class MinioService {
         }
     }
 
-    public InputStream getObject(String path) {
+    protected InputStream getObject(String path) {
         try {
             return minioClient.getObject(
                     GetObjectArgs.builder()

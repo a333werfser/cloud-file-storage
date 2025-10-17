@@ -2,6 +2,8 @@ package edu.example.project.service;
 
 import edu.example.project.dto.ResourceDto;
 import edu.example.project.exception.BadResourceTypeException;
+import edu.example.project.exception.ResourceAlreadyExistsException;
+import edu.example.project.exception.ResourceNotFoundException;
 import io.minio.StatObjectResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,19 @@ import java.util.zip.ZipOutputStream;
 public class FileService implements PathResolverService {
 
     private final MinioService minioService;
+
+    protected void moveFile(String from, String to) {
+        if (from.equals(to)) {
+            return;
+        }
+        minioService.copyObject(from, to);
+        try {
+            minioService.statObject(to);
+        } catch (ResourceNotFoundException exception) {
+            throw new RuntimeException("Copy failed", exception);
+        }
+        minioService.removeObject(from);
+    }
 
     protected byte[] getFileBinaryContent(String path) throws IOException {
         ensureFilePath(path);
