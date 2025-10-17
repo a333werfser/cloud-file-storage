@@ -5,11 +5,17 @@ import edu.example.project.exception.BadResourceTypeException;
 import edu.example.project.exception.ResourceAlreadyExistsException;
 import edu.example.project.exception.ResourceNotFoundException;
 import io.minio.*;
+import io.minio.errors.*;
+import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,12 +27,24 @@ public class ResourceService {
 
     private final FolderService folderService;
 
-    /**
-     *
-     * @param from ex. root/folder/item (if move)   ex. root/folder/item (if rename)
-     * @param to   ex. root/directory/item (if move)    ex. root/folder/not-item (if rename)
-     * @return
-     */
+    public List<ResourceDto> findResourcesInfo(int userId, String prefix) {
+        List<ResourceDto> resources = new ArrayList<>();
+        prefix = redirectToUserRootFolder(userId, prefix);
+        minioService.listObjects(prefix).forEach((result) -> {
+            try {
+                Item objectInfo = result.get();
+                if (objectInfo.isDir()) {
+                    resources.add(folderService.mapFolderToDto(objectInfo.objectName()));
+                } else {
+                    resources.add(fileService.mapFileToDto(objectInfo.objectName(), objectInfo.size()));
+                }
+            } catch (Exception exception) {
+                throw new RuntimeException(exception);
+            }
+        });
+        return resources;
+    }
+
     public ResourceDto moveResource(int userId, String from, String to) throws ResourceNotFoundException, ResourceAlreadyExistsException {
         StatObjectResponse statObject = findResourceInfo(redirectToUserRootFolder(userId, from));
         try {
