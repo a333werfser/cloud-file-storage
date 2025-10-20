@@ -28,6 +28,21 @@ public class ResourceService {
 
     private final FolderService folderService;
 
+    public void createFolder(int userId, String path) {
+        folderService.createFolder(redirectToUserRootFolder(userId, path));
+    }
+
+    public List<ResourceDto> getFolderContents(int userId, String path) throws ResourceNotFoundException {
+        folderService.ensureFolderPath(path);
+        StatObjectResponse statObject = findResourceInfo(redirectToUserRootFolder(userId, path));
+        if (folderService.pathHasObjectsInside(statObject.object())) {
+            return findResourcesBy(statObject.object(), false);
+        }
+        else {
+            return new ArrayList<>();
+        }
+    }
+
     public List<ResourceDto> uploadResources(int userId, String path, List<MultipartFile> files) throws IOException, ResourceNotFoundException, ResourceAlreadyExistsException {
         folderService.ensureFolderPath(path);
         String userContextPath = redirectToUserRootFolder(userId, path);
@@ -68,9 +83,12 @@ public class ResourceService {
     }
 
     public List<ResourceDto> getResourcesInfo(int userId, String prefix) {
+        return findResourcesBy(redirectToUserRootFolder(userId, prefix), true);
+    }
+
+    private List<ResourceDto> findResourcesBy(String prefix, boolean isRecursive) {
         List<ResourceDto> resources = new ArrayList<>();
-        prefix = redirectToUserRootFolder(userId, prefix);
-        minioService.listObjects(prefix).forEach((result) -> {
+        minioService.listObjects(prefix, isRecursive).forEach((result) -> {
             try {
                 Item objectInfo = result.get();
                 if (objectInfo.isDir()) {

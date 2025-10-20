@@ -89,12 +89,12 @@ public class MinioService {
         }
     }
 
-    protected Iterable<Result<Item>> listObjects(String prefix) {
+    protected Iterable<Result<Item>> listObjects(String prefix, boolean isRecursive) {
         return minioClient.listObjects(
                 ListObjectsArgs.builder()
                         .bucket(bucketProperties.getDefaultName())
                         .prefix(prefix)
-                        .recursive(true)
+                        .recursive(isRecursive)
                         .build()
         );
     }
