@@ -1,20 +1,24 @@
 package edu.example.project.controller;
 
+import edu.example.project.dto.ResourceDto;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/resource")
 public class ResourceController {
 
-    @GetMapping
-    public ResponseEntity<String> getResourceInfo(@RequestParam String path) {
-        int userId;
 
-        return ResponseEntity.ok().build();
+    /**
+     * filename возможно будет содержать верхнюю папку (testfold/file.txt)
+     * + надо загружать сразу несколько файлов
+     */
+    @PostMapping
+    public ResponseEntity<ResourceDto> upload(@RequestParam("path") String path, @RequestParam("file") List<MultipartFile> files) {
+        return null;
     }
 
 }

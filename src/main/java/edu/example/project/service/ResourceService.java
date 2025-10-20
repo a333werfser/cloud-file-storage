@@ -9,6 +9,7 @@ import io.minio.errors.*;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -27,7 +28,46 @@ public class ResourceService {
 
     private final FolderService folderService;
 
-    public List<ResourceDto> findResourcesInfo(int userId, String prefix) {
+    public List<ResourceDto> uploadResources(int userId, String path, List<MultipartFile> files) throws IOException, ResourceNotFoundException, ResourceAlreadyExistsException {
+        folderService.ensureFolderPath(path);
+        String userContextPath = redirectToUserRootFolder(userId, path);
+        if (filesNotExist(userContextPath, files)) {
+            ArrayList<ResourceDto> resources = new ArrayList<>();
+            for (MultipartFile file : files) {
+                String object = userContextPath + file.getOriginalFilename();
+                minioService.putObject(object, file);
+                StatObjectResponse written = findResourceInfo(path);
+                resources.add(fileService.mapFileToDto(written.object(), written.size()));
+            }
+            return resources;
+        }
+        else {
+            throw new ResourceAlreadyExistsException("Resource along the path already exists");
+        }
+    }
+
+    // существует проблема безопасности из-за клиентского инпута + null
+    private boolean filesNotExist(String userContextPath, List<MultipartFile> files) {
+        for (MultipartFile file : files) {
+            String object = userContextPath + resolveRootElement(file.getOriginalFilename());
+            try {
+                findResourceInfo(object);
+                return false;
+            } catch (ResourceNotFoundException ignored) {}
+        }
+        return true;
+    }
+
+    private String resolveRootElement(String path) {
+        if (!path.contains("/")) {
+            return path;
+        }
+        else {
+            return path.substring(0, path.indexOf("/") + 1);
+        }
+    }
+
+    public List<ResourceDto> getResourcesInfo(int userId, String prefix) {
         List<ResourceDto> resources = new ArrayList<>();
         prefix = redirectToUserRootFolder(userId, prefix);
         minioService.listObjects(prefix).forEach((result) -> {
@@ -45,6 +85,7 @@ public class ResourceService {
         return resources;
     }
 
+    //возможно, можно сократить код
     public ResourceDto moveResource(int userId, String from, String to) throws ResourceNotFoundException, ResourceAlreadyExistsException {
         StatObjectResponse statObject = findResourceInfo(redirectToUserRootFolder(userId, from));
         try {

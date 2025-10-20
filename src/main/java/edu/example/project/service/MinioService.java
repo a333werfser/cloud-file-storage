@@ -9,12 +9,11 @@ import io.minio.messages.DeleteObject;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,6 +24,21 @@ public class MinioService {
     private final MinioClient minioClient;
 
     private final BucketProperties bucketProperties;
+
+    protected void putObject(String path, MultipartFile file) throws IOException {
+        try {
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketProperties.getDefaultName())
+                            .object(path)
+                            .stream(file.getInputStream(), file.getSize(), -1)
+                            .contentType(file.getContentType())
+                            .build()
+            );
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        }
+    }
 
     protected void copyObject(String from, String to) {
         try {

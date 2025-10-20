@@ -59,11 +59,12 @@ public class FileService implements PathResolverService {
     }
 
     private String resolvePathToFile(String path) {
-        Path parentPath = Paths.get(path).getParent();
-        if (parentPath == null) {
+        if (!path.contains("/")) {
             return "";
         }
-        return parentPath.toString();
+        else {
+            return path.substring(0, path.lastIndexOf("/") + 1);
+        }
     }
 
     private void ensureFilePath(String path) {

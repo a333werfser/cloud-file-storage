@@ -128,7 +128,7 @@ public class FolderService implements PathResolverService {
         }
     }
 
-    private void ensureFolderPath(String... paths) {
+    protected void ensureFolderPath(String... paths) {
         for (String path : paths) {
             if (!path.endsWith("/")) {
                 throw new BadResourceTypeException("Path to folder expected");
