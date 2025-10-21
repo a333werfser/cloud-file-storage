@@ -124,7 +124,7 @@ public class MinioService {
 
     protected void removeObjectsFrom(String prefix) {
         List<DeleteObject> deleteObjects = new ArrayList<>();
-        listObjects(prefix).forEach(
+        listObjects(prefix, true).forEach(
                 object -> {
                     try {
                         deleteObjects.add(new DeleteObject(object.get().objectName()));

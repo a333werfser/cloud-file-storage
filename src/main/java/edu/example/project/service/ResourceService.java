@@ -5,18 +5,15 @@ import edu.example.project.exception.BadResourceTypeException;
 import edu.example.project.exception.ResourceAlreadyExistsException;
 import edu.example.project.exception.ResourceNotFoundException;
 import io.minio.*;
-import io.minio.errors.*;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -28,15 +25,19 @@ public class ResourceService {
 
     private final FolderService folderService;
 
-    public void createFolder(int userId, String path) {
-        folderService.createFolder(redirectToUserRootFolder(userId, path));
+    public ResourceDto createFolder(int userId, String path) {
+        folderService.ensureFolderPath(path);
+        String userContextPath = redirectToUserRootFolder(userId, path);
+        folderService.createFolder(userContextPath);
+        createNecessaryFolders(userContextPath);
+        return folderService.mapFolderToDto(userContextPath);
     }
 
     public List<ResourceDto> getFolderContents(int userId, String path) throws ResourceNotFoundException {
         folderService.ensureFolderPath(path);
-        StatObjectResponse statObject = findResourceInfo(redirectToUserRootFolder(userId, path));
-        if (folderService.pathHasObjectsInside(statObject.object())) {
-            return findResourcesBy(statObject.object(), false);
+        StatObjectResponse resourceInfo = findResourceInfo(redirectToUserRootFolder(userId, path));
+        if (folderService.pathHasObjectsInside(resourceInfo.object())) {
+            return findResourcesBy(resourceInfo.object(), false);
         }
         else {
             return new ArrayList<>();
@@ -49,9 +50,10 @@ public class ResourceService {
         if (filesNotExist(userContextPath, files)) {
             ArrayList<ResourceDto> resources = new ArrayList<>();
             for (MultipartFile file : files) {
-                String object = userContextPath + file.getOriginalFilename();
-                minioService.putObject(object, file);
-                StatObjectResponse written = findResourceInfo(path);
+                String objectKey = userContextPath + file.getOriginalFilename();
+                minioService.putObject(objectKey, file);
+                StatObjectResponse written = findResourceInfo(objectKey);
+                createNecessaryFolders(objectKey);
                 resources.add(fileService.mapFileToDto(written.object(), written.size()));
             }
             return resources;
@@ -61,12 +63,11 @@ public class ResourceService {
         }
     }
 
-    // существует проблема безопасности из-за клиентского инпута + null
     private boolean filesNotExist(String userContextPath, List<MultipartFile> files) {
         for (MultipartFile file : files) {
-            String object = userContextPath + resolveRootElement(file.getOriginalFilename());
+            String objectKey = userContextPath + resolveRootElement(Objects.requireNonNull(file.getOriginalFilename()));
             try {
-                findResourceInfo(object);
+                findResourceInfo(objectKey);
                 return false;
             } catch (ResourceNotFoundException ignored) {}
         }
@@ -90,11 +91,11 @@ public class ResourceService {
         List<ResourceDto> resources = new ArrayList<>();
         minioService.listObjects(prefix, isRecursive).forEach((result) -> {
             try {
-                Item objectInfo = result.get();
-                if (objectInfo.isDir()) {
-                    resources.add(folderService.mapFolderToDto(objectInfo.objectName()));
+                Item resourceInfo = result.get();
+                if (resourceInfo.isDir()) {
+                    resources.add(folderService.mapFolderToDto(resourceInfo.objectName()));
                 } else {
-                    resources.add(fileService.mapFileToDto(objectInfo.objectName(), objectInfo.size()));
+                    resources.add(fileService.mapFileToDto(resourceInfo.objectName(), resourceInfo.size()));
                 }
             } catch (Exception exception) {
                 throw new RuntimeException(exception);
@@ -103,63 +104,74 @@ public class ResourceService {
         return resources;
     }
 
-    //возможно, можно сократить код
     public ResourceDto moveResource(int userId, String from, String to) throws ResourceNotFoundException, ResourceAlreadyExistsException {
-        StatObjectResponse statObject = findResourceInfo(redirectToUserRootFolder(userId, from));
+        StatObjectResponse resourceInfo = findResourceInfo(redirectToUserRootFolder(userId, from));
         try {
             findResourceInfo(to);
         } catch (ResourceNotFoundException exception) {
-            from = statObject.object();
-            to = redirectToUserRootFolder(userId, to);
             if (getResourceType(from) != getResourceType(to)) {
                 throw new BadResourceTypeException("Can't convert File to Directory and vice versa");
             }
+            from = resourceInfo.object();
+            to = redirectToUserRootFolder(userId, to);
             if (getResourceType(from) == ResourceType.FILE) {
                 fileService.moveFile(from, to);
                 StatObjectResponse moved = findResourceInfo(to);
+                createNecessaryFolders(to);
                 return fileService.mapFileToDto(moved.object(), moved.size());
             }
             else {
                 folderService.moveFolder(from, to);
                 StatObjectResponse moved = findResourceInfo(to);
+                createNecessaryFolders(to);
                 return folderService.mapFolderToDto(moved.object());
             }
         }
         throw new ResourceAlreadyExistsException("Resource along the path already exists");
     }
 
+    private void createNecessaryFolders(String path) {
+        String[] names = path.split("/");
+        StringBuilder folder = new StringBuilder();
+        for (int i = 0; i < names.length - 1; i++) {
+            String name = names[i];
+            folder.append(name).append("/");
+            folderService.createFolder(folder.toString());
+        }
+    }
+
     public byte[] getResourceBinaryContent(int userId, String path) throws ResourceNotFoundException, IOException {
-        StatObjectResponse statObject = findResourceInfo(redirectToUserRootFolder(userId, path));
-        if (getResourceType(statObject.object()) == ResourceType.FILE) {
-            return fileService.getFileBinaryContent(statObject.object());
+        StatObjectResponse resourceInfo = findResourceInfo(redirectToUserRootFolder(userId, path));
+        if (getResourceType(resourceInfo.object()) == ResourceType.FILE) {
+            return fileService.getFileBinaryContent(resourceInfo.object());
         }
         else {
-            return folderService.getFolderBinaryContentZipped(statObject.object());
+            return folderService.getFolderBinaryContentZipped(resourceInfo.object());
         }
     }
 
     public ResourceDto getResourceInfo(int userId, String path) throws ResourceNotFoundException {
-        StatObjectResponse statObject = findResourceInfo(redirectToUserRootFolder(userId, path));
-        if (getResourceType(statObject.object()) == ResourceType.FILE) {
-            return fileService.mapFileToDto(statObject.object(), statObject.size());
+        StatObjectResponse resourceInfo = findResourceInfo(redirectToUserRootFolder(userId, path));
+        if (getResourceType(resourceInfo.object()) == ResourceType.FILE) {
+            return fileService.mapFileToDto(resourceInfo.object(), resourceInfo.size());
         }
         else {
-            return folderService.mapFolderToDto(statObject.object());
+            return folderService.mapFolderToDto(resourceInfo.object());
         }
     }
 
     public void removeResource(int userId, String path) throws ResourceNotFoundException {
-        StatObjectResponse statObject = findResourceInfo(redirectToUserRootFolder(userId, path));
-        if (getResourceType(statObject.object()) == ResourceType.FILE) {
-            minioService.removeObject(statObject.object());
+        StatObjectResponse resourceInfo = findResourceInfo(redirectToUserRootFolder(userId, path));
+        if (getResourceType(resourceInfo.object()) == ResourceType.FILE) {
+            minioService.removeObject(resourceInfo.object());
         }
         else {
-            if (folderService.pathHasObjectsInside(statObject.object())) {
-                minioService.removeObjectsFrom(statObject.object());
-                minioService.removeObject(statObject.object());
+            if (folderService.pathHasObjectsInside(resourceInfo.object())) {
+                minioService.removeObjectsFrom(resourceInfo.object());
+                minioService.removeObject(resourceInfo.object());
             }
             else {
-                minioService.removeObject(statObject.object());
+                minioService.removeObject(resourceInfo.object());
             }
         }
     }
@@ -172,13 +184,7 @@ public class ResourceService {
                 throw new ResourceNotFoundException("File does not exist", exception);
             }
             else {
-                if (folderService.pathHasObjectsInside(path)) {
-                    folderService.createFolder(path);
-                    return findResourceInfo(path);
-                }
-                else {
-                    throw new ResourceNotFoundException("Directory does not exist", exception);
-                }
+                throw new ResourceNotFoundException("Directory does not exist", exception);
             }
         }
     }

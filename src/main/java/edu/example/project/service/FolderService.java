@@ -29,7 +29,7 @@ public class FolderService implements PathResolverService {
             return;
         }
         if (pathHasObjectsInside(from)) {
-            minioService.listObjects(from).forEach(result -> {
+            minioService.listObjects(from, true).forEach(result -> {
                 try {
                     Item objectInfo = result.get();
                     minioService.copyObject(objectInfo.objectName(), to + objectInfo.objectName());
@@ -57,7 +57,7 @@ public class FolderService implements PathResolverService {
              ZipOutputStream zipOut = new ZipOutputStream(bufferedOut)
         ) {
             if (pathHasObjectsInside(path)) {
-                minioService.listObjects(path).forEach((result) -> {
+                minioService.listObjects(path, true).forEach((result) -> {
                     try {
                         Item objectInfo = result.get();
                         String key = objectInfo.objectName();
