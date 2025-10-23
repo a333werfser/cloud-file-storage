@@ -25,47 +25,60 @@ public class ResourceService {
 
     private final FolderService folderService;
 
-    public ResourceDto createFolder(int userId, String path) {
+    public ResourceDto createFolder(int userId, String path) throws ResourceNotFoundException, ResourceAlreadyExistsException {
         folderService.ensureFolderPath(path);
-        String userContextPath = redirectToUserRootFolder(userId, path);
-        folderService.createFolder(userContextPath);
-        createNecessaryFolders(userContextPath);
-        return folderService.mapFolderToDto(userContextPath);
+        try {
+            String parentFolder = folderService.resolvePathToFolder(path);
+            String userContextPath = redirectToUserRootFolder(userId, path);
+            findResourceInfo(redirectToUserRootFolder(userId, parentFolder));
+            try {
+                findResourceInfo(userContextPath);
+                throw new ResourceAlreadyExistsException("Folder already exists");
+            } catch (ResourceNotFoundException exception) {
+                folderService.createFolder(userContextPath);
+                return folderService.mapFolderToDto(userContextPath);
+            }
+        } catch (ResourceNotFoundException exception) {
+            throw new ResourceNotFoundException("Parent folder not exists", exception);
+        }
     }
 
     public List<ResourceDto> getFolderContents(int userId, String path) throws ResourceNotFoundException {
         folderService.ensureFolderPath(path);
         StatObjectResponse resourceInfo = findResourceInfo(redirectToUserRootFolder(userId, path));
         if (folderService.pathHasObjectsInside(resourceInfo.object())) {
-            return findResourcesBy(resourceInfo.object(), false);
+            return findFolderContents(resourceInfo.object());
         }
         else {
             return new ArrayList<>();
         }
     }
 
-    public List<ResourceDto> uploadResources(int userId, String path, List<MultipartFile> files) throws IOException, ResourceNotFoundException, ResourceAlreadyExistsException {
+    public List<ResourceDto> uploadResources(int userId, String path, List<MultipartFile> files) throws ResourceNotFoundException, ResourceAlreadyExistsException {
         folderService.ensureFolderPath(path);
-        String userContextPath = redirectToUserRootFolder(userId, path);
-        if (filesNotExist(userContextPath, files)) {
-            ArrayList<ResourceDto> resources = new ArrayList<>();
-            for (MultipartFile file : files) {
-                String objectKey = userContextPath + file.getOriginalFilename();
-                minioService.putObject(objectKey, file);
-                StatObjectResponse written = findResourceInfo(objectKey);
-                createNecessaryFolders(objectKey);
-                resources.add(fileService.mapFileToDto(written.object(), written.size()));
+        try {
+            StatObjectResponse folderInfo = findResourceInfo(redirectToUserRootFolder(userId, path));
+            if (resourcesAlongPathNotExist(folderInfo.object(), files)) {
+                ArrayList<ResourceDto> resources = new ArrayList<>();
+                for (MultipartFile file : files) {
+                    String objectKey = folderInfo.object() + file.getOriginalFilename();
+                    minioService.putObject(objectKey, file);
+                    StatObjectResponse written = findResourceInfo(objectKey);
+                    createNecessaryFolders(folderInfo.object(), objectKey);
+                    resources.add(fileService.mapFileToDto(written.object(), written.size()));
+                }
+                return resources;
+            } else {
+                throw new ResourceAlreadyExistsException("Resource along the path already exists");
             }
-            return resources;
-        }
-        else {
-            throw new ResourceAlreadyExistsException("Resource along the path already exists");
+        } catch (ResourceNotFoundException exception) {
+            throw new ResourceNotFoundException("Folder to upload files not found", exception);
         }
     }
 
-    private boolean filesNotExist(String userContextPath, List<MultipartFile> files) {
+    private boolean resourcesAlongPathNotExist(String userContextPath, List<MultipartFile> files) {
         for (MultipartFile file : files) {
-            String objectKey = userContextPath + resolveRootElement(Objects.requireNonNull(file.getOriginalFilename()));
+            String objectKey = userContextPath + folderService.resolveRootElement(Objects.requireNonNull(file.getOriginalFilename()));
             try {
                 findResourceInfo(objectKey);
                 return false;
@@ -74,25 +87,16 @@ public class ResourceService {
         return true;
     }
 
-    private String resolveRootElement(String path) {
-        if (!path.contains("/")) {
-            return path;
-        }
-        else {
-            return path.substring(0, path.indexOf("/") + 1);
-        }
-    }
-
     public List<ResourceDto> getResourcesInfo(int userId, String prefix) {
-        return findResourcesBy(redirectToUserRootFolder(userId, prefix), true);
+        return findResources(redirectToUserRootFolder(userId, prefix));
     }
 
-    private List<ResourceDto> findResourcesBy(String prefix, boolean isRecursive) {
+    private List<ResourceDto> findResources(String prefix) {
         List<ResourceDto> resources = new ArrayList<>();
-        minioService.listObjects(prefix, isRecursive).forEach((result) -> {
+        for (Result<Item> result : minioService.listObjects(prefix, true)) {
             try {
                 Item resourceInfo = result.get();
-                if (resourceInfo.isDir()) {
+                if (resourceInfo.objectName().endsWith("/")) {
                     resources.add(folderService.mapFolderToDto(resourceInfo.objectName()));
                 } else {
                     resources.add(fileService.mapFileToDto(resourceInfo.objectName(), resourceInfo.size()));
@@ -100,42 +104,80 @@ public class ResourceService {
             } catch (Exception exception) {
                 throw new RuntimeException(exception);
             }
-        });
+        }
+        return resources;
+    }
+
+    private List<ResourceDto> findFolderContents(String folder) {
+        List<ResourceDto> resources = new ArrayList<>();
+        for (Result<Item> result : minioService.listObjects(folder, false)) {
+            try {
+                Item resourceInfo = result.get();
+                if (resourceInfo.objectName().equals(folder)) {
+                    continue;
+                }
+                if (resourceInfo.objectName().endsWith("/")) {
+                    resources.add(folderService.mapFolderToDto(resourceInfo.objectName()));
+                } else {
+                    resources.add(fileService.mapFileToDto(resourceInfo.objectName(), resourceInfo.size()));
+                }
+            } catch (Exception exception) {
+                throw new RuntimeException(exception);
+            }
+        }
         return resources;
     }
 
     public ResourceDto moveResource(int userId, String from, String to) throws ResourceNotFoundException, ResourceAlreadyExistsException {
-        StatObjectResponse resourceInfo = findResourceInfo(redirectToUserRootFolder(userId, from));
-        try {
-            findResourceInfo(to);
-        } catch (ResourceNotFoundException exception) {
-            if (getResourceType(from) != getResourceType(to)) {
-                throw new BadResourceTypeException("Can't convert File to Directory and vice versa");
-            }
-            from = resourceInfo.object();
-            to = redirectToUserRootFolder(userId, to);
-            if (getResourceType(from) == ResourceType.FILE) {
-                fileService.moveFile(from, to);
-                StatObjectResponse moved = findResourceInfo(to);
-                createNecessaryFolders(to);
-                return fileService.mapFileToDto(moved.object(), moved.size());
-            }
-            else {
-                folderService.moveFolder(from, to);
-                StatObjectResponse moved = findResourceInfo(to);
-                createNecessaryFolders(to);
-                return folderService.mapFolderToDto(moved.object());
-            }
+        ensureEqualResourceTypes(from, to);
+        to = redirectToUserRootFolder(userId, to);
+        from = redirectToUserRootFolder(userId, from);
+
+        ensureSrcResourceExists(from);
+        ensureParentFolderExists(to);
+        ensureTargetResourceNotExists(to);
+
+        if (getResourceType(from) == ResourceType.FILE) {
+            fileService.moveFile(from, to);
+            StatObjectResponse moved = findResourceInfo(to);
+            return fileService.mapFileToDto(moved.object(), moved.size());
+        } else {
+            folderService.moveFolder(from, to);
+            StatObjectResponse moved = findResourceInfo(to);
+            return folderService.mapFolderToDto(moved.object());
         }
-        throw new ResourceAlreadyExistsException("Resource along the path already exists");
     }
 
-    private void createNecessaryFolders(String path) {
-        String[] names = path.split("/");
-        StringBuilder folder = new StringBuilder();
+    private void ensureEqualResourceTypes(String from, String to) {
+        if (getResourceType(from) != getResourceType(to)) {
+            throw new BadResourceTypeException("Can't convert File to Directory and vice versa");
+        }
+    }
+
+    private void ensureParentFolderExists(String to) throws ResourceNotFoundException {
+        try {
+            findResourceInfo(folderService.resolvePathToFolder(to));
+        } catch (ResourceNotFoundException exception) {
+            throw new ResourceNotFoundException("Parent folder not exists", exception);
+        }
+    }
+
+    private void ensureSrcResourceExists(String from) throws ResourceNotFoundException {
+        findResourceInfo(from);
+    }
+
+    private void ensureTargetResourceNotExists(String to) throws ResourceAlreadyExistsException {
+        try {
+            findResourceInfo(to);
+            throw new ResourceAlreadyExistsException("Resource along the path already exists");
+        } catch (ResourceNotFoundException ignored) {}
+    }
+
+    private void createNecessaryFolders(String unnecessaryPart, String path) {
+        String[] names = path.substring(unnecessaryPart.length()).split("/");
+        StringBuilder folder = new StringBuilder(unnecessaryPart);
         for (int i = 0; i < names.length - 1; i++) {
-            String name = names[i];
-            folder.append(name).append("/");
+            folder.append(names[i]).append("/");
             folderService.createFolder(folder.toString());
         }
     }

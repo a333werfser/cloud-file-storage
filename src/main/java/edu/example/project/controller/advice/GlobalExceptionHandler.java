@@ -1,4 +1,4 @@
-package edu.example.project.exception;
+package edu.example.project.controller.advice;
 
 import edu.example.project.dto.ResponseMessageDto;
 import org.springframework.http.HttpStatus;

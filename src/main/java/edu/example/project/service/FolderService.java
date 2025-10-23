@@ -3,6 +3,7 @@ package edu.example.project.service;
 import edu.example.project.dto.ResourceDto;
 import edu.example.project.exception.BadResourceTypeException;
 import edu.example.project.exception.ResourceNotFoundException;
+import io.minio.Result;
 import io.minio.errors.*;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Iterator;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -28,36 +30,35 @@ public class FolderService implements PathResolverService {
         if (from.equals(to)) {
             return;
         }
-        if (pathHasObjectsInside(from)) {
-            minioService.listObjects(from, true).forEach(result -> {
-                try {
-                    Item objectInfo = result.get();
-                    minioService.copyObject(objectInfo.objectName(), to + objectInfo.objectName());
-                    try {
-                        minioService.statObject(to);
-                    } catch (ResourceNotFoundException exception) {
-                        throw new RuntimeException("Copy failed", exception);
-                    }
-                    minioService.removeObject(objectInfo.objectName());
-                } catch (Exception exception) {
-                    throw new RuntimeException(exception);
+        try {
+            if (pathHasObjectsInside(from)) {
+                for (Result<Item> result : minioService.listObjects(from, true)) {
+                    Item item = result.get();
+                    String destPath = resolveDestinationPath(item.objectName(), from, to);
+                    minioService.copyObject(item.objectName(), destPath);
+                    minioService.statObject(destPath);
+                    minioService.removeObject(item.objectName());
                 }
-            });
-        }
-        else {
-            minioService.copyObject(from, to);
-            minioService.removeObject(from);
+            } else {
+                minioService.copyObject(from, to);
+                minioService.statObject(to);
+                minioService.removeObject(from);
+            }
+        } catch (ResourceNotFoundException exception) {
+            throw new RuntimeException("Copy failed", exception);
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
         }
     }
 
     protected byte[] getFolderBinaryContentZipped(String path) throws IOException {
         ensureFolderPath(path);
-        try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-             BufferedOutputStream bufferedOut = new BufferedOutputStream(byteOut);
+        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+        try (BufferedOutputStream bufferedOut = new BufferedOutputStream(byteOut);
              ZipOutputStream zipOut = new ZipOutputStream(bufferedOut)
         ) {
             if (pathHasObjectsInside(path)) {
-                minioService.listObjects(path, true).forEach((result) -> {
+                for (Result<Item> result : minioService.listObjects(path, true)) {
                     try {
                         Item objectInfo = result.get();
                         String key = objectInfo.objectName();
@@ -69,15 +70,14 @@ public class FolderService implements PathResolverService {
                     } catch (Exception exception) {
                         throw new RuntimeException(exception);
                     }
-                });
-            }
-            else {
+                }
+            } else {
                 zipOut.putNextEntry(new ZipEntry(resolveFolderName(path)));
                 zipOut.write(new byte[0]);
                 zipOut.closeEntry();
             }
-            return byteOut.toByteArray();
         }
+        return byteOut.toByteArray();
     }
 
     protected ResourceDto mapFolderToDto(String path) {
@@ -95,9 +95,29 @@ public class FolderService implements PathResolverService {
         minioService.putEmptyObject(path);
     }
 
+    /**
+     * return false, if path has only one empty folder object
+     * @param path
+     * @return
+     */
     protected boolean pathHasObjectsInside(String path) {
         ensureFolderPath(path);
-        return minioService.listObjects(path, 1).iterator().hasNext();
+        try {
+            for (Result<Item> result : minioService.listObjects(path, true)) {
+                Item item = result.get();
+                if (!item.objectName().equals(path)) {
+                    return true;
+                }
+            }
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        }
+        return false;
+    }
+
+    private String resolveDestinationPath(String objectKey, String from, String to) {
+        String relativePath = objectKey.substring(from.length() - 1);
+        return to + relativePath;
     }
 
     private String resolveZipEntryName(String pathToFolder, String fullPath) {
@@ -108,7 +128,8 @@ public class FolderService implements PathResolverService {
         return path.length() - path.replace("/", "").length();
     }
 
-    private String resolvePathToFolder(String path) {
+    protected String resolvePathToFolder(String path) {
+        ensureFolderPath(path);
         if (countFoldersNumber(path) == 1) {
             return "";
         }
@@ -128,10 +149,21 @@ public class FolderService implements PathResolverService {
         }
     }
 
+    protected String resolveRootElement(String path) {
+        if (!path.contains("/")) {
+            return path;
+        }
+        else {
+            return path.substring(0, path.indexOf("/") + 1);
+        }
+    }
+
     protected void ensureFolderPath(String... paths) {
         for (String path : paths) {
             if (!path.endsWith("/")) {
-                throw new BadResourceTypeException("Path to folder expected");
+                if (!path.isEmpty()) {
+                    throw new BadResourceTypeException("Path to folder expected");
+                }
             }
         }
     }

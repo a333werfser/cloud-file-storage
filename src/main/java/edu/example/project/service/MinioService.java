@@ -25,7 +25,7 @@ public class MinioService {
 
     private final BucketProperties bucketProperties;
 
-    protected void putObject(String path, MultipartFile file) throws IOException {
+    protected void putObject(String path, MultipartFile file) {
         try {
             minioClient.putObject(
                     PutObjectArgs.builder()
@@ -99,16 +99,6 @@ public class MinioService {
         );
     }
 
-    protected Iterable<Result<Item>> listObjects(String prefix, int maxKeys) {
-        return minioClient.listObjects(
-                ListObjectsArgs.builder()
-                        .bucket(bucketProperties.getDefaultName())
-                        .prefix(prefix)
-                        .maxKeys(maxKeys)
-                        .build()
-        );
-    }
-
     protected void removeObject(String path) {
         try {
             minioClient.removeObject(
@@ -124,26 +114,21 @@ public class MinioService {
 
     protected void removeObjectsFrom(String prefix) {
         List<DeleteObject> deleteObjects = new ArrayList<>();
-        listObjects(prefix, true).forEach(
-                object -> {
-                    try {
-                        deleteObjects.add(new DeleteObject(object.get().objectName()));
-                    } catch (Exception exception) {
-                        throw new RuntimeException(exception);
-                    }
-                });
-        Iterable<Result<DeleteError>> results = minioClient.removeObjects(
-                RemoveObjectsArgs.builder()
-                        .bucket(bucketProperties.getDefaultName())
-                        .objects(deleteObjects)
-                        .build()
-        );
-        for (Result<DeleteError> result : results) {
-            try {
-                result.get();
-            } catch(Exception exception) {
-                throw new RuntimeException(exception);
+        try {
+            for (Result<Item> result : listObjects(prefix, true)) {
+                Item item = result.get();
+                deleteObjects.add(new DeleteObject(item.objectName()));
             }
+            for (Result<DeleteError> result : minioClient.removeObjects(
+                    RemoveObjectsArgs.builder()
+                            .bucket(bucketProperties.getDefaultName())
+                            .objects(deleteObjects)
+                            .build()
+            )) {
+                    result.get();
+            }
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
         }
     }
 
