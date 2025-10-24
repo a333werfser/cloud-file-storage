@@ -100,7 +100,7 @@ public class ResourceServiceTest {
 
     @Test
     void whenCreateFolder_thenFolderAppear() throws ResourceAlreadyExistsException, ResourceNotFoundException {
-        int userId = 1;
+        Long userId = 1L;
         String path = "path/";
         resourceService.createFolder(userId, path);
         resourceService.getResourceInfo(userId, path);
@@ -108,7 +108,7 @@ public class ResourceServiceTest {
 
     @Test
     void whenCreateFolderWhichAlreadyExists_thenThrowException() throws ResourceAlreadyExistsException, ResourceNotFoundException {
-        int userId = 1;
+        Long userId = 1L;
         String path = "path/";
         resourceService.createFolder(userId, path);
         assertThrows(ResourceAlreadyExistsException.class, () -> resourceService.createFolder(userId, path));
@@ -116,7 +116,7 @@ public class ResourceServiceTest {
 
     @Test
     void whenCreateFolderAlongInvalidPath_thenThrowException() {
-        int userId = 1;
+        Long userId = 1L;
         String path = "path/folder/";
         assertThrows(ResourceNotFoundException.class, () -> resourceService.createFolder(userId, path));
     }
@@ -124,7 +124,7 @@ public class ResourceServiceTest {
     @Test
     void whenUploadResource_thenResourceAppear() throws ResourceAlreadyExistsException, ResourceNotFoundException {
         List<MultipartFile> files = getFilesListWithMockedOne("folder/file.txt");
-        int userId = 1;
+        Long userId = 1L;
 
         resourceService.uploadResources(userId, "", files);
     }
@@ -132,7 +132,7 @@ public class ResourceServiceTest {
     @Test
     void whenUploadResourceAlongThePathThatNotExists_thenThrowException() {
         List<MultipartFile> files = getFilesListWithMockedOne("folder/file.txt");
-        int userId = 1;
+        Long userId = 1L;
         String invalidPath = "path/";
 
         assertThrows(ResourceNotFoundException.class, () -> resourceService.uploadResources(userId, invalidPath, files));
@@ -141,7 +141,7 @@ public class ResourceServiceTest {
     @Test
     void whenUploadResourceThatAlreadyExistsAlongThePath_thenThrowException() throws ResourceAlreadyExistsException, ResourceNotFoundException {
         List<MultipartFile> files = getFilesListWithMockedOne("folder/file.txt");
-        int userId = 1;
+        Long userId = 1L;
 
         resourceService.uploadResources(userId, "", files);
         assertThrows(ResourceAlreadyExistsException.class, () -> resourceService.uploadResources(userId, "", files));
@@ -151,7 +151,7 @@ public class ResourceServiceTest {
     void whenUploadFolder_thenAllFoldersShouldExist() throws ResourceAlreadyExistsException, ResourceNotFoundException {
         String fileName = "folder/f1/f2/f3/f4/file.txt";
         List<MultipartFile> files = getFilesListWithMockedOne(fileName);
-        int userId = 1;
+        Long userId = 1L;
 
         resourceService.uploadResources(userId, "", files);
 
@@ -166,7 +166,7 @@ public class ResourceServiceTest {
     @Test
     void shouldRemoveFile() throws ResourceAlreadyExistsException, ResourceNotFoundException {
         List<MultipartFile> files = getFilesListWithMockedOne("file.txt");
-        int userId = 1;
+        Long userId = 1L;
 
         resourceService.uploadResources(userId, "", files);
         resourceService.removeResource(userId, "file.txt");
@@ -175,7 +175,7 @@ public class ResourceServiceTest {
 
     @Test
     void shouldRemoveFolder() throws ResourceAlreadyExistsException, ResourceNotFoundException {
-        int userId = 1;
+        Long userId = 1L;
         String path = "folder/";
         resourceService.createFolder(userId, path);
         resourceService.removeResource(userId, path);
@@ -186,7 +186,7 @@ public class ResourceServiceTest {
     void shouldRemoveFilledFolder() throws ResourceAlreadyExistsException, ResourceNotFoundException {
         List<MultipartFile> files = getFilesListWithMockedFiles();
         String path = "folder/";
-        int userId = 1;
+        Long userId = 1L;
 
         resourceService.createFolder(userId, path);
         resourceService.uploadResources(userId, path, files);
@@ -197,7 +197,7 @@ public class ResourceServiceTest {
     @Test
     void shouldMoveFile() throws ResourceAlreadyExistsException, ResourceNotFoundException {
         List<MultipartFile> files = getFilesListWithMockedOne("file.txt");
-        int userId = 1;
+        Long userId = 1L;
 
         resourceService.createFolder(userId, "from/");
         resourceService.createFolder(userId, "to/");
@@ -209,7 +209,7 @@ public class ResourceServiceTest {
     @Test
     void shouldRenameFile() throws ResourceAlreadyExistsException, ResourceNotFoundException {
         List<MultipartFile> files = getFilesListWithMockedOne("file.txt");
-        int userId = 1;
+        Long userId = 1L;
         resourceService.uploadResources(userId, "", files);
         resourceService.moveResource(userId, "file.txt", "renamed.txt");
         resourceService.getResourceInfo(userId, "renamed.txt");
@@ -217,7 +217,7 @@ public class ResourceServiceTest {
 
     @Test
     void shouldMoveEmptyFolder() throws ResourceAlreadyExistsException, ResourceNotFoundException {
-        int userId = 1;
+        Long userId = 1L;
         resourceService.createFolder(userId, "folder/");
         resourceService.createFolder(userId, "destination/");
         resourceService.moveResource(userId, "folder/", "destination/folder/");
@@ -227,7 +227,7 @@ public class ResourceServiceTest {
     @Test
     void shouldMoveFilledFolder() throws ResourceAlreadyExistsException, ResourceNotFoundException {
         List<MultipartFile> files = getFilesListWithMockedFiles();
-        int userId = 1;
+        Long userId = 1L;
         resourceService.createFolder(userId, "folder/");
         resourceService.createFolder(userId, "folder/from/");
         resourceService.uploadResources(userId, "folder/from/", files);
@@ -237,7 +237,7 @@ public class ResourceServiceTest {
 
     @Test
     void givenPathHasThisFolderName_whenMoveFolder_thenThrowException() throws ResourceAlreadyExistsException, ResourceNotFoundException {
-        int userId = 1;
+        Long userId = 1L;
         resourceService.createFolder(userId, "folder/");
         resourceService.createFolder(userId, "folder/from/");
         resourceService.createFolder(userId, "from/");
@@ -246,14 +246,14 @@ public class ResourceServiceTest {
 
     @Test
     void whenTargetPathNotExists_thenThrowException() throws ResourceAlreadyExistsException, ResourceNotFoundException {
-        int userId = 1;
+        Long userId = 1L;
         resourceService.createFolder(userId, "folder/");
         assertThrows(ResourceNotFoundException.class, () -> resourceService.moveResource(userId, "folder/", "directory/f1/"));
     }
 
     @Test
     void shouldRenameFolder() throws ResourceAlreadyExistsException, ResourceNotFoundException {
-        int userId = 1;
+        Long userId = 1L;
         resourceService.createFolder(userId, "folder/");
         resourceService.moveResource(userId, "folder/", "directory/");
         resourceService.getResourceInfo(userId, "directory/");
@@ -262,7 +262,7 @@ public class ResourceServiceTest {
     @Test
     void whenSearchByPrefix_thenResultsShouldStartWithPrefix() throws ResourceAlreadyExistsException, ResourceNotFoundException {
         List<MultipartFile> files = getFilesListWithMockedFiles();
-        int userId = 1;
+        Long userId = 1L;
 
         resourceService.createFolder(userId, "folder/");
         resourceService.uploadResources(userId, "folder/", files);
@@ -277,7 +277,7 @@ public class ResourceServiceTest {
     @Test
     void whenGetFolderContents_thenResultShouldNotIncludeFolderItself() throws ResourceNotFoundException, ResourceAlreadyExistsException {
         List<MultipartFile> files = getFilesListWithMockedFiles();
-        int userId = 1;
+        Long userId = 1L;
 
         resourceService.createFolder(userId, "folder/");
         resourceService.uploadResources(userId, "folder/", files);
@@ -289,9 +289,9 @@ public class ResourceServiceTest {
     @Test
     void whenGetResourceInfo_thenMapCorrectly() throws ResourceNotFoundException, ResourceAlreadyExistsException {
         List<MultipartFile> files = getFilesListWithMockedOne("file.txt");
-        int userId = 1;
-        resourceService.createFolder(1,"folder/");
-        resourceService.uploadResources(1, "", files);
+        Long userId = 1L;
+        resourceService.createFolder(userId,"folder/");
+        resourceService.uploadResources(userId, "", files);
 
         var folder = resourceService.getResourceInfo(userId, "folder/");
         var file = resourceService.getResourceInfo(userId, "file.txt");
@@ -313,7 +313,7 @@ public class ResourceServiceTest {
     @Test
     void whenDownloadFilledFolder_thenDownloadSameContentZip() throws ResourceAlreadyExistsException, ResourceNotFoundException, IOException {
         List<MultipartFile> files = getFilesListWithMockedFiles();
-        int userId = 1;
+        Long userId = 1L;
 
         resourceService.createFolder(userId, "folder/");
         resourceService.createFolder(userId, "folder/dir/");
@@ -341,7 +341,7 @@ public class ResourceServiceTest {
 
     @Test
     void whenDownloadEmptyFolder_thenDownloadEmptyZip() throws ResourceAlreadyExistsException, ResourceNotFoundException, IOException {
-        int userId = 1;
+        Long userId = 1L;
 
         resourceService.createFolder(userId, "folder/");
 
@@ -357,7 +357,7 @@ public class ResourceServiceTest {
     @Test
     void shouldDownloadFile() throws ResourceAlreadyExistsException, ResourceNotFoundException, IOException {
         List<MultipartFile> files = getFilesListWithMockedOne("file.txt");
-        int userId = 1;
+        Long userId = 1L;
 
         resourceService.uploadResources(userId, "", files);
 

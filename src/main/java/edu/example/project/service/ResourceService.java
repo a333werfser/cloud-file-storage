@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -25,7 +27,7 @@ public class ResourceService {
 
     private final FolderService folderService;
 
-    public ResourceDto createFolder(int userId, String path) throws ResourceNotFoundException, ResourceAlreadyExistsException {
+    public ResourceDto createFolder(Long userId, String path) throws ResourceNotFoundException, ResourceAlreadyExistsException {
         folderService.ensureFolderPath(path);
         try {
             String parentFolder = folderService.resolvePathToFolder(path);
@@ -43,7 +45,7 @@ public class ResourceService {
         }
     }
 
-    public List<ResourceDto> getFolderContents(int userId, String path) throws ResourceNotFoundException {
+    public List<ResourceDto> getFolderContents(Long userId, String path) throws ResourceNotFoundException {
         folderService.ensureFolderPath(path);
         StatObjectResponse resourceInfo = findResourceInfo(redirectToUserRootFolder(userId, path));
         if (folderService.pathHasObjectsInside(resourceInfo.object())) {
@@ -54,7 +56,7 @@ public class ResourceService {
         }
     }
 
-    public List<ResourceDto> uploadResources(int userId, String path, List<MultipartFile> files) throws ResourceNotFoundException, ResourceAlreadyExistsException {
+    public List<ResourceDto> uploadResources(Long userId, String path, List<MultipartFile> files) throws ResourceNotFoundException, ResourceAlreadyExistsException {
         folderService.ensureFolderPath(path);
         try {
             StatObjectResponse folderInfo = findResourceInfo(redirectToUserRootFolder(userId, path));
@@ -87,7 +89,7 @@ public class ResourceService {
         return true;
     }
 
-    public List<ResourceDto> getResourcesInfo(int userId, String prefix) {
+    public List<ResourceDto> getResourcesInfo(Long userId, String prefix) {
         return findResources(redirectToUserRootFolder(userId, prefix));
     }
 
@@ -128,7 +130,7 @@ public class ResourceService {
         return resources;
     }
 
-    public ResourceDto moveResource(int userId, String from, String to) throws ResourceNotFoundException, ResourceAlreadyExistsException {
+    public ResourceDto moveResource(Long userId, String from, String to) throws ResourceNotFoundException, ResourceAlreadyExistsException {
         ensureEqualResourceTypes(from, to);
         to = redirectToUserRootFolder(userId, to);
         from = redirectToUserRootFolder(userId, from);
@@ -182,7 +184,7 @@ public class ResourceService {
         }
     }
 
-    public byte[] getResourceBinaryContent(int userId, String path) throws ResourceNotFoundException, IOException {
+    public byte[] getResourceBinaryContent(Long userId, String path) throws ResourceNotFoundException, IOException {
         StatObjectResponse resourceInfo = findResourceInfo(redirectToUserRootFolder(userId, path));
         if (getResourceType(resourceInfo.object()) == ResourceType.FILE) {
             return fileService.getFileBinaryContent(resourceInfo.object());
@@ -192,7 +194,15 @@ public class ResourceService {
         }
     }
 
-    public ResourceDto getResourceInfo(int userId, String path) throws ResourceNotFoundException {
+    public String resolveDownloadedResourceName(String path) {
+        Path abstractPath = Paths.get(path);
+        if (getResourceType(path) == ResourceType.FILE) {
+            return abstractPath.getFileName().toString();
+        }
+        return abstractPath.getFileName().toString() + ".zip";
+    }
+
+    public ResourceDto getResourceInfo(Long userId, String path) throws ResourceNotFoundException {
         StatObjectResponse resourceInfo = findResourceInfo(redirectToUserRootFolder(userId, path));
         if (getResourceType(resourceInfo.object()) == ResourceType.FILE) {
             return fileService.mapFileToDto(resourceInfo.object(), resourceInfo.size());
@@ -202,7 +212,7 @@ public class ResourceService {
         }
     }
 
-    public void removeResource(int userId, String path) throws ResourceNotFoundException {
+    public void removeResource(Long userId, String path) throws ResourceNotFoundException {
         StatObjectResponse resourceInfo = findResourceInfo(redirectToUserRootFolder(userId, path));
         if (getResourceType(resourceInfo.object()) == ResourceType.FILE) {
             minioService.removeObject(resourceInfo.object());
@@ -231,7 +241,7 @@ public class ResourceService {
         }
     }
 
-    private String redirectToUserRootFolder(int userId, String path) {
+    private String redirectToUserRootFolder(Long userId, String path) {
         String userFolder = String.format("user-%d-files/", userId);
         folderService.createFolder(userFolder);
         return userFolder + path;

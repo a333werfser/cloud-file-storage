@@ -31,8 +31,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         authorize -> authorize
                                 .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
-                                .requestMatchers("/auth/sign-in").permitAll()
-                                .requestMatchers("/auth/sign-up").permitAll()
+                                .requestMatchers("/api/auth/sign-in").permitAll()
+                                .requestMatchers("/api/auth/sign-up").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .securityContext(securityContext -> securityContext

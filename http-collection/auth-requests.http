@@ -1,0 +1,13 @@
+###
+# @name=POST /auth/sign-in
+POST localhost:8080/api/auth/sign-in
+Content-Type: application/json
+
+{
+  "username": "aleksej",
+  "password": "123456789"
+}
+
+###
+# @name=GET /user/me
+GET localhost:8080/api/user/me
