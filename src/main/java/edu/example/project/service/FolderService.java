@@ -120,7 +120,8 @@ public class FolderService implements PathResolverService {
         return to + relativePath;
     }
 
-    private String resolveZipEntryName(String pathToFolder, String fullPath) {
+    private String resolveZipEntryName(String folderPath, String fullPath) {
+        String pathToFolder = resolvePathToFolder(folderPath);
         return fullPath.substring(pathToFolder.length());
     }
 

@@ -58,7 +58,8 @@ public class FileService implements PathResolverService {
         return Paths.get(path).getFileName().toString();
     }
 
-    private String resolvePathToFile(String path) {
+    protected String resolvePathToFile(String path) {
+        ensureFilePath(path);
         if (!path.contains("/")) {
             return "";
         }

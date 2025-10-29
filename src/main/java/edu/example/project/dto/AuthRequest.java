@@ -12,7 +12,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class AuthRequestDto {
+public class AuthRequest {
 
     private static final int MAXIMUM_PASSWORD_LENGTH = 20;
 
@@ -22,9 +22,9 @@ public class AuthRequestDto {
 
     private static final int MINIMUM_USERNAME_LENGTH = 4;
 
-    private static final String USERNAME_NULL = "Username must not be empty";
+    private static final String USERNAME_NULL = "Username must not be null";
 
-    private static final String PASSWORD_NULL = "Password must not be empty";
+    private static final String PASSWORD_NULL = "Password must not be null";
 
     private static final String USERNAME_INVALID_SIZE = "Username length must be between 4 and 20 characters";
 
@@ -34,11 +34,17 @@ public class AuthRequestDto {
 
     private static final String PASSWORD_INVALID_PATTERN = "Password must not contain whitespaces";
 
+    /**
+     * Username must contain only latin characters, 0-9 digits and _. It is also case-insensitive
+     */
     @NotNull(message = USERNAME_NULL)
-    @Pattern(regexp = "[A-Za-z0-9_]+", message = USERNAME_INVALID_PATTERN)
+    @Pattern(regexp = "^[A-Za-z0-9_]+$", message = USERNAME_INVALID_PATTERN)
     @Size(min = MINIMUM_USERNAME_LENGTH, max = MAXIMUM_USERNAME_LENGTH, message = USERNAME_INVALID_SIZE)
     private String username;
 
+    /**
+     * Password must not contain whitespaces
+     */
     @NotNull(message = PASSWORD_NULL)
     @Pattern(regexp = "\\S+", message = PASSWORD_INVALID_PATTERN)
     @Size(min = MINIMUM_PASSWORD_LENGTH, max = MAXIMUM_PASSWORD_LENGTH, message = PASSWORD_INVALID_SIZE)

@@ -110,12 +110,12 @@ public class ResourceService {
         return resources;
     }
 
-    private List<ResourceDto> findFolderContents(String folder) {
+    private List<ResourceDto> findFolderContents(String path) {
         List<ResourceDto> resources = new ArrayList<>();
-        for (Result<Item> result : minioService.listObjects(folder, false)) {
+        for (Result<Item> result : minioService.listObjects(path, false)) {
             try {
                 Item resourceInfo = result.get();
-                if (resourceInfo.objectName().equals(folder)) {
+                if (resourceInfo.objectName().equals(path)) {
                     continue;
                 }
                 if (resourceInfo.objectName().endsWith("/")) {
@@ -158,9 +158,18 @@ public class ResourceService {
 
     private void ensureParentFolderExists(String to) throws ResourceNotFoundException {
         try {
-            findResourceInfo(folderService.resolvePathToFolder(to));
+            findResourceInfo(resolveParentFolder(to));
         } catch (ResourceNotFoundException exception) {
             throw new ResourceNotFoundException("Parent folder not exists", exception);
+        }
+    }
+
+    private String resolveParentFolder(String path) {
+        if (getResourceType(path) == ResourceType.FOLDER) {
+            return folderService.resolvePathToFolder(path);
+        }
+        else {
+            return fileService.resolvePathToFile(path);
         }
     }
 

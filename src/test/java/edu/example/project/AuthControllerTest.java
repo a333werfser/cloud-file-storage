@@ -1,8 +1,8 @@
 package edu.example.project;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.example.project.dto.AuthRequestDto;
-import edu.example.project.dto.ResponseMessageDto;
+import edu.example.project.dto.AuthRequest;
+import edu.example.project.dto.ResponseMessage;
 import edu.example.project.model.User;
 import edu.example.project.repository.UserRepository;
 import edu.example.project.service.RegistrationService;
@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
@@ -65,17 +66,17 @@ public class AuthControllerTest {
     @WithMockUser
     @Test
     void whenUserLogsOut_thenUserBecomesUnauthenticated() throws Exception {
-        mockMvc.perform(post("/auth/sign-out")).andExpect(unauthenticated());
+        mockMvc.perform(post("/api/auth/sign-out")).andExpect(unauthenticated());
     }
 
     @WithAnonymousUser
     @Test
     void whenUserSignsUp_thenUserBecomesAuthenticated() throws Exception {
-        String json = objectMapper.writeValueAsString(new AuthRequestDto("username", "password"));
+        String json = objectMapper.writeValueAsString(new AuthRequest("username", "password"));
 
         mockMvc.perform(get("/test-endpoint")).andExpect(unauthenticated());
         mockMvc.perform(
-                post("/auth/sign-up").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
+                post("/api/auth/sign-up").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
         ).andExpect(authenticated());
     }
 
@@ -83,49 +84,45 @@ public class AuthControllerTest {
     @Test
     void whenUserSignsIn_thenUserBecomesAuthenticated() throws Exception {
         User user = new User("username", "password");
-        String json = objectMapper.writeValueAsString(new AuthRequestDto(user.getUsername(), user.getPassword()));
+        String json = objectMapper.writeValueAsString(new AuthRequest(user.getUsername(), user.getPassword()));
 
         registrationService.registerUser(user);
         mockMvc.perform(
-                post("/auth/sign-in").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
+                post("/api/auth/sign-in").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
         ).andExpect(authenticated());
     }
 
     @WithAnonymousUser
     @Test
     void whenNotRegisteredUserSignsIn_thenUserIsUnauthenticated() throws Exception {
-        String json = objectMapper.writeValueAsString(new AuthRequestDto("username", "password"));
+        String json = objectMapper.writeValueAsString(new AuthRequest("username", "password"));
 
         mockMvc.perform(
-                post("/auth/sign-in").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
+                post("/api/auth/sign-in").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
         ).andExpect(unauthenticated());
     }
 
     @Test
     void whenUserSignsUpWithInvalidCredentials_thenBadRequest() throws Exception {
-        String json = objectMapper.writeValueAsString(new AuthRequestDto("@.//", "pasw  pasw"));
+        String json = objectMapper.writeValueAsString(new AuthRequest("@.//", "pasw  pasw"));
 
         mockMvc.perform(
-                post("/auth/sign-up").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
+                post("/api/auth/sign-up").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
         ).andExpectAll(status().isBadRequest(), content().contentType(MediaType.APPLICATION_JSON_VALUE));
     }
-
-    // неуникальный логин -> статус код и месседж
-    // кастомная 500 ошибка
-    // логинится незарегистрированный пользователь
 
     @WithAnonymousUser
     @Test
     void whenNotRegisteredUserSignsIn_thenCorrectJsonMessageAndUnauthenticatedStatus() throws Exception {
-        String json = objectMapper.writeValueAsString(new AuthRequestDto("username", "password"));
-        String mockedJson = objectMapper.writeValueAsString(new ResponseMessageDto("User not found"));
+        String json = objectMapper.writeValueAsString(new AuthRequest("username", "password"));
+        String mockedJson = objectMapper.writeValueAsString(new ResponseMessage("User not found"));
         String actualJson;
 
         MvcResult results = mockMvc.perform(
-                post("/auth/sign-in").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
+                post("/api/auth/sign-in").contentType(MediaType.APPLICATION_JSON_VALUE).content(json)
         ).andExpectAll(status().isUnauthorized(), content().contentType(MediaType.APPLICATION_JSON_VALUE)).andReturn();
         actualJson = results.getResponse().getContentAsString();
-        assertTrue(mockedJson.equals(actualJson));
+        assertEquals(mockedJson, actualJson);
     }
 
 }

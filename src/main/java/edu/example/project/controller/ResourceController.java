@@ -1,10 +1,12 @@
 package edu.example.project.controller;
 
+import edu.example.project.dto.PathRequest;
 import edu.example.project.dto.ResourceDto;
 import edu.example.project.exception.ResourceAlreadyExistsException;
 import edu.example.project.exception.ResourceNotFoundException;
 import edu.example.project.security.UserDetailsImpl;
 import edu.example.project.service.ResourceService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -13,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,10 +31,10 @@ public class ResourceController {
 
     @GetMapping("/download")
     public ResponseEntity<Resource> downloadResource(@AuthenticationPrincipal UserDetailsImpl principle,
-                                                     @RequestParam("path") String path
+                                                     @Valid @ModelAttribute PathRequest pathRequest
     ) throws IOException, ResourceNotFoundException {
-        byte[] resourceBinaryContent = resourceService.getResourceBinaryContent(principle.getId(), path);
-        String resourceName = resourceService.resolveDownloadedResourceName(path);
+        byte[] resourceBinaryContent = resourceService.getResourceBinaryContent(principle.getId(), pathRequest.getPath());
+        String resourceName = resourceService.resolveDownloadedResourceName(pathRequest.getPath());
         return ResponseEntity.status(HttpStatus.OK)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resourceName + "\"")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM).body(new ByteArrayResource(resourceBinaryContent));
@@ -46,32 +49,33 @@ public class ResourceController {
 
     @GetMapping("/move")
     public ResponseEntity<ResourceDto> moveResource(@AuthenticationPrincipal UserDetailsImpl principle,
-                                                    @RequestParam("path") String from, @RequestParam String to
+                                                    @Validated(PathRequest.Copy.class) @ModelAttribute PathRequest pathRequest
     ) throws ResourceNotFoundException, ResourceAlreadyExistsException {
-        ResourceDto resourceDto = resourceService.moveResource(principle.getId(), from, to);
+        ResourceDto resourceDto = resourceService.moveResource(principle.getId(), pathRequest.getFrom(), pathRequest.getTo());
         return ResponseEntity.status(HttpStatus.OK).body(resourceDto);
     }
 
     @PostMapping
     public ResponseEntity<List<ResourceDto>> uploadResources(@AuthenticationPrincipal UserDetailsImpl principle,
-                                                             @RequestParam("path") String path, @RequestParam("file") List<MultipartFile> files
+                                                             @Valid @ModelAttribute PathRequest pathRequest, @RequestParam("file") List<MultipartFile> files
     ) throws ResourceAlreadyExistsException, ResourceNotFoundException {
-        List<ResourceDto> resources = resourceService.uploadResources(principle.getId(), path, files);
+        List<ResourceDto> resources = resourceService.uploadResources(principle.getId(), pathRequest.getPath(), files);
         return ResponseEntity.status(HttpStatus.CREATED).body(resources);
     }
 
     @GetMapping
     public ResponseEntity<ResourceDto> getResourceInfo(@AuthenticationPrincipal UserDetailsImpl principle,
-                                                       @RequestParam("path") String path
+                                                       @Valid @ModelAttribute PathRequest pathRequest
     ) throws ResourceNotFoundException {
-        ResourceDto resourceDto = resourceService.getResourceInfo(principle.getId(), path);
+        ResourceDto resourceDto = resourceService.getResourceInfo(principle.getId(), pathRequest.getPath());
         return ResponseEntity.status(HttpStatus.OK).body(resourceDto);
     }
 
     @DeleteMapping
     public ResponseEntity<Void> deleteResource(@AuthenticationPrincipal UserDetailsImpl principle,
-                                               @RequestParam("path") String path) throws ResourceNotFoundException {
-        resourceService.removeResource(principle.getId(), path);
+                                               @Valid @ModelAttribute PathRequest pathRequest
+    ) throws ResourceNotFoundException {
+        resourceService.removeResource(principle.getId(), pathRequest.getPath());
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 

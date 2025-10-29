@@ -10,14 +10,14 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ResponseMessageDto {
+public class ResponseMessage {
 
     private String message;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<String> violations;
 
-    public ResponseMessageDto(String message) {
+    public ResponseMessage(String message) {
         this.message = message;
     }
 

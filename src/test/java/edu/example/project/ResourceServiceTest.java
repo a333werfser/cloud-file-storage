@@ -5,27 +5,24 @@ import edu.example.project.dto.ResourceDto;
 import edu.example.project.exception.ResourceAlreadyExistsException;
 import edu.example.project.exception.ResourceNotFoundException;
 import edu.example.project.service.ResourceService;
-import io.minio.ListObjectsArgs;
-import io.minio.MinioClient;
-import io.minio.RemoveObjectsArgs;
-import io.minio.Result;
+import io.minio.*;
+import io.minio.errors.*;
 import io.minio.messages.DeleteError;
 import io.minio.messages.DeleteObject;
 import io.minio.messages.Item;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.multipart.MultipartFile;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -33,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@Testcontainers
 public class ResourceServiceTest {
 
     @Autowired
@@ -96,6 +94,12 @@ public class ResourceServiceTest {
             fileIndex++;
         }
         return files;
+    }
+
+    @Test
+    void test() throws ServerException, InsufficientDataException, ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
+        boolean boll = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketProperties.getDefaultName()).build());
+        assertTrue(boll);
     }
 
     @Test
@@ -311,7 +315,7 @@ public class ResourceServiceTest {
     }
 
     @Test
-    void whenDownloadFilledFolder_thenDownloadSameContentZip() throws ResourceAlreadyExistsException, ResourceNotFoundException, IOException {
+    void shouldZipFilledFolder() throws ResourceAlreadyExistsException, ResourceNotFoundException, IOException {
         List<MultipartFile> files = getFilesListWithMockedFiles();
         Long userId = 1L;
 
@@ -340,7 +344,7 @@ public class ResourceServiceTest {
     }
 
     @Test
-    void whenDownloadEmptyFolder_thenDownloadEmptyZip() throws ResourceAlreadyExistsException, ResourceNotFoundException, IOException {
+    void shouldZipEmptyFolder() throws ResourceAlreadyExistsException, ResourceNotFoundException, IOException {
         Long userId = 1L;
 
         resourceService.createFolder(userId, "folder/");
@@ -350,6 +354,7 @@ public class ResourceServiceTest {
         try (ByteArrayInputStream byteIn = new ByteArrayInputStream(zip);
              ZipInputStream zipIn = new ZipInputStream(byteIn)
         ) {
+            assertEquals("folder/", Objects.requireNonNull(zipIn.getNextEntry()).getName());
             assertNull(zipIn.getNextEntry());
         }
     }

@@ -1,7 +1,7 @@
 package edu.example.project.controller;
 
-import edu.example.project.dto.AuthRequestDto;
-import edu.example.project.dto.ResponseMessageDto;
+import edu.example.project.dto.AuthRequest;
+import edu.example.project.dto.ResponseMessage;
 import edu.example.project.dto.UserDto;
 import edu.example.project.exception.NotUniqueUsernameException;
 import edu.example.project.model.User;
@@ -10,7 +10,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,12 +19,12 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
-import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,7 +44,7 @@ public class AuthController {
     private final RegistrationService registrationService;
 
     @PostMapping("/sign-up")
-    public ResponseEntity<UserDto> performSignUp(@Valid @RequestBody AuthRequestDto userRequest, UserDto userDto,
+    public ResponseEntity<UserDto> performSignUp(@Valid @RequestBody AuthRequest userRequest, UserDto userDto,
                                                  HttpServletRequest request, HttpServletResponse response) {
         User user = new User(userRequest.getUsername(), userRequest.getPassword());
         registrationService.registerUser(user);
@@ -56,7 +55,7 @@ public class AuthController {
     }
 
     @PostMapping("/sign-in")
-    public ResponseEntity<UserDto> performSignIn(@Valid @RequestBody AuthRequestDto userRequest, UserDto userDto,
+    public ResponseEntity<UserDto> performSignIn(@Valid @RequestBody AuthRequest userRequest, UserDto userDto,
                                                  HttpServletRequest request, HttpServletResponse response) {
         performAuthentication(userRequest.getUsername(), userRequest.getPassword(), request, response);
         userDto.setUsername(userRequest.getUsername());
@@ -80,21 +79,20 @@ public class AuthController {
     }
 
     @ExceptionHandler
-    public ResponseEntity<ResponseMessageDto> handle(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ResponseMessage> handle(MethodArgumentNotValidException ex) {
         List<String> constraintViolations = new ArrayList<>();
-        ex.getBindingResult().getFieldErrors().forEach((fieldError) -> {
+        for (FieldError fieldError : ex.getFieldErrors()) {
             constraintViolations.add(fieldError.getDefaultMessage());
-        });
-        ResponseMessageDto responseMessageDto =  new ResponseMessageDto();
+        }
+        ResponseMessage responseMessageDto =  new ResponseMessage();
         responseMessageDto.setMessage("Invalid username or password");
         responseMessageDto.setViolations(constraintViolations);
-
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMessageDto);
     }
 
     @ExceptionHandler
-    public ResponseEntity<ResponseMessageDto> handle(NotUniqueUsernameException ex) {
-        ResponseMessageDto responseMessageDto =  new ResponseMessageDto();
+    public ResponseEntity<ResponseMessage> handle(NotUniqueUsernameException ex) {
+        ResponseMessage responseMessageDto =  new ResponseMessage();
         responseMessageDto.setMessage(ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(responseMessageDto);
     }

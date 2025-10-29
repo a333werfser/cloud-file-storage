@@ -1,10 +1,10 @@
 ###
 # @name=POST /directory
-POST localhost:8080/api/directory?path=path/folder/ HTTP/1.1
+POST localhost:8080/api/directory HTTP/1.1
 
 ###
 # @name=POST /resource
-POST localhost:8080/api/resource?path= HTTP/1.1
+POST localhost:8080/api/resource?path=papka/ HTTP/1.1
 Content-Type: multipart/form-data; boundary=boundary
 
 --boundary
@@ -15,4 +15,4 @@ Content-Disposition: form-data; name="file"; filename="file1.mp3"
 
 ###
 # @name= GET /resource/download
-GET localhost:8080/api/resource/download?path=path/ HTTP/1.1
+GET localhost:8080/api/resource/download?path=folder/ HTTP/1.1

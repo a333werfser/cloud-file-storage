@@ -1,6 +1,6 @@
 package edu.example.project;
 
-import edu.example.project.dto.AuthRequestDto;
+import edu.example.project.dto.AuthRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -12,7 +12,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class AuthRequestValidationTest {
 
@@ -29,8 +29,8 @@ public class AuthRequestValidationTest {
     )
     void whenIncorrectUsername_thenViolationsSetIsNotEmpty(String incorrectUsername) {
         String password = "valid.password";
-        Set<ConstraintViolation<AuthRequestDto>> violations = validator.validate(new AuthRequestDto(incorrectUsername, password));
-        assertTrue(!violations.isEmpty());
+        Set<ConstraintViolation<AuthRequest>> violations = validator.validate(new AuthRequest(incorrectUsername, password));
+        assertFalse(violations.isEmpty());
     }
 
     @ParameterizedTest
@@ -39,7 +39,7 @@ public class AuthRequestValidationTest {
     )
     void whenCorrectUsername_thenViolationsSetIsEmpty(String correctUsername) {
         String password = "valid.password";
-        Set<ConstraintViolation<AuthRequestDto>> violations = validator.validate(new AuthRequestDto(correctUsername, password));
+        Set<ConstraintViolation<AuthRequest>> violations = validator.validate(new AuthRequest(correctUsername, password));
         assertTrue(violations.isEmpty());
     }
 
@@ -49,8 +49,8 @@ public class AuthRequestValidationTest {
     )
     void whenIncorrectPassword_thenViolationsSetIsNotEmpty(String incorrectPassword) {
         String username = "valid_user";
-        Set<ConstraintViolation<AuthRequestDto>> violations = validator.validate(new AuthRequestDto(username, incorrectPassword));
-        assertTrue(!violations.isEmpty());
+        Set<ConstraintViolation<AuthRequest>> violations = validator.validate(new AuthRequest(username, incorrectPassword));
+        assertFalse(violations.isEmpty());
     }
 
     @ParameterizedTest
@@ -59,15 +59,15 @@ public class AuthRequestValidationTest {
     )
     void whenCorrectPassword_thenViolationsSetIsEmpty(String correctPassword) {
         String username = "valid_user";
-        Set<ConstraintViolation<AuthRequestDto>> violations = validator.validate(new AuthRequestDto(username, correctPassword));
+        Set<ConstraintViolation<AuthRequest>> violations = validator.validate(new AuthRequest(username, correctPassword));
         assertTrue(violations.isEmpty());
     }
 
     @Test
     void whenUsernameAndPasswordAreNull_thenSetPopulatesWithNotNullViolations() {
-        Set<ConstraintViolation<AuthRequestDto>> violations = validator.validate(new AuthRequestDto(null, null));
-        for (ConstraintViolation<AuthRequestDto> violation : violations) {
-            assertTrue(violation.getConstraintDescriptor().getAnnotation() instanceof NotNull);
+        Set<ConstraintViolation<AuthRequest>> violations = validator.validate(new AuthRequest(null, null));
+        for (ConstraintViolation<AuthRequest> violation : violations) {
+            assertInstanceOf(NotNull.class, violation.getConstraintDescriptor().getAnnotation());
         }
     }
 
@@ -75,15 +75,15 @@ public class AuthRequestValidationTest {
     @ValueSource(strings = { "xxx", "yyyyyyyyyyyyyyyyyyyyy" } )
     void whenIncorrectUsernameLength_thenViolationsSetIsNotEmpty(String incorrectUsername) {
         String password = "valid.password";
-        Set<ConstraintViolation<AuthRequestDto>> violations = validator.validate(new AuthRequestDto(incorrectUsername, password));
-        assertTrue(!violations.isEmpty());
+        Set<ConstraintViolation<AuthRequest>> violations = validator.validate(new AuthRequest(incorrectUsername, password));
+        assertFalse(violations.isEmpty());
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "xxx", "yyyyyyyyyyyyyyyyyyyyy" } )
     void whenIncorrectPasswordLength_thenViolationsSetIsNotEmpty(String incorrectPassword) {
         String username = "valid_user";
-        Set<ConstraintViolation<AuthRequestDto>> violations = validator.validate(new AuthRequestDto(username, incorrectPassword));
-        assertTrue(!violations.isEmpty());
+        Set<ConstraintViolation<AuthRequest>> violations = validator.validate(new AuthRequest(username, incorrectPassword));
+        assertFalse(violations.isEmpty());
     }
 }

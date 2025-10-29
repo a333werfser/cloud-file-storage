@@ -1,7 +1,7 @@
 package edu.example.project.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import edu.example.project.dto.ResponseMessageDto;
+import edu.example.project.dto.ResponseMessage;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -14,7 +14,7 @@ public class UserNotFoundEntryPoint implements AuthenticationEntryPoint {
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException {
-        ResponseMessageDto responseMessageDto = new ResponseMessageDto();
+        ResponseMessage responseMessageDto = new ResponseMessage();
         if (authException instanceof BadCredentialsException) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
