@@ -4,7 +4,9 @@ import edu.example.project.dto.AuthRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 import jakarta.validation.constraints.NotNull;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -16,11 +18,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class AuthRequestValidationTest {
 
+    static ValidatorFactory factory;
+
     static Validator validator;
 
     @BeforeAll
     static void beforeAll() {
-        validator = Validation.buildDefaultValidatorFactory().getValidator();
+        factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
     }
 
     @ParameterizedTest
@@ -85,5 +90,12 @@ public class AuthRequestValidationTest {
         String username = "valid_user";
         Set<ConstraintViolation<AuthRequest>> violations = validator.validate(new AuthRequest(username, incorrectPassword));
         assertFalse(violations.isEmpty());
+    }
+
+    @AfterAll
+    static void afterAll() {
+        if (factory != null) {
+            factory.close();
+        }
     }
 }
