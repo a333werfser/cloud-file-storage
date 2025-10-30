@@ -74,19 +74,12 @@ public class AuthController {
     }
 
     private void performAuthentication(String username, String password, HttpServletRequest request, HttpServletResponse response) {
-//        try {
             Authentication userToken = new UsernamePasswordAuthenticationToken(username, password);
             Authentication authenticatedUser = authenticationManager.authenticate(userToken);
             SecurityContext context = securityContextHolderStrategy.createEmptyContext();
             context.setAuthentication(authenticatedUser);
             securityContextHolderStrategy.setContext(context);
             securityContextRepository.saveContext(context, request, response);
-//        } catch (AuthenticationException e) {
-//            if (e instanceof BadCredentialsException) {
-//                throw new AuthenticationFailedException("User not found");
-//            }
-//            throw e;
-//        }
     }
 
     @ExceptionHandler
@@ -100,13 +93,6 @@ public class AuthController {
         responseMessageDto.setViolations(constraintViolations);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMessageDto);
     }
-
-//    @ExceptionHandler
-//    public ResponseEntity<ResponseMessage> handle(AuthenticationFailedException ex) {
-//        ResponseMessage responseMessageDto = new ResponseMessage();
-//        responseMessageDto.setMessage(ex.getMessage());
-//        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(responseMessageDto);
-//    }
 
     @ExceptionHandler
     public ResponseEntity<ResponseMessage> handle(NotUniqueUsernameException ex) {

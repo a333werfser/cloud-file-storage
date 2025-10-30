@@ -2,6 +2,7 @@ package edu.example.project;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.example.project.dto.AuthRequest;
+import edu.example.project.dto.PathRequest;
 import edu.example.project.dto.ResponseMessage;
 import edu.example.project.model.User;
 import edu.example.project.repository.UserRepository;
@@ -12,19 +13,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.multipart.MultipartFile;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -123,6 +128,16 @@ public class AuthControllerTest {
         ).andExpectAll(status().isUnauthorized(), content().contentType(MediaType.APPLICATION_JSON_VALUE)).andReturn();
         actualJson = results.getResponse().getContentAsString();
         assertEquals(mockedJson, actualJson);
+    }
+
+    @WithMockUser
+    @Test
+    void shouldReturnBadRequest() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "file".getBytes());
+
+        mockMvc.perform(
+                multipart("/api/resource").file(file).param("path", "/")
+        ).andExpect(status().isBadRequest());
     }
 
 }

@@ -9,9 +9,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.util.Objects;
 
@@ -56,13 +58,35 @@ public class GlobalExceptionHandler {
         return buildErrorResponseMessage(ex, HttpStatus.NOT_FOUND);
     }
 
-//    @ExceptionHandler(Exception.class)
-//    public ResponseEntity<ResponseMessage> handleAll(Exception ex) {
-//        if (ex instanceof AuthenticationException) {
-//            throw (AuthenticationException) ex; // return AuthenticationException to ExceptionTranslationFilter
-//        }
-//        ResponseMessage message = new ResponseMessage();
-//        message.setMessage("Internal Server Error");
-//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(message);
-//    }
+    /**
+     * return AuthenticationException back to ExceptionTranslationFilter
+     *
+     * @throws AuthenticationException
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public void handle(AuthenticationException ignored) {
+        throw ignored;
+    }
+
+    /**
+     * return Spring-specific exceptions back to Spring
+     *
+     * @throws MissingServletRequestParameterException
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ResponseMessage> handle(MissingServletRequestParameterException ignored) throws MissingServletRequestParameterException {
+        throw ignored;
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ResponseMessage> handle(MissingServletRequestPartException ignored) throws MissingServletRequestPartException {
+        throw ignored;
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ResponseMessage> handleAll(Exception ex) {
+        ResponseMessage message = new ResponseMessage();
+        message.setMessage("Internal Server Error");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(message);
+    }
 }
