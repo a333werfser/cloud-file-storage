@@ -40,7 +40,6 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(new UserNotFoundEntryPoint())
-                        //new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
                 )
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults());

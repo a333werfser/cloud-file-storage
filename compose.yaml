@@ -26,6 +26,11 @@ services:
       - minio_root_password
     command: server /data --console-address ":9001"
 
+  frontend:
+    image: frontend
+    ports:
+      - "80:80"
+
 secrets:
   postgres_password:
     file: ./secrets/.psql_password

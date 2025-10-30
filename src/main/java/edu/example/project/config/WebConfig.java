@@ -18,7 +18,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**") // разрешаем все пути
-                .allowedOrigins("http://localhost:3000") // или адрес фронта (если из Docker, может быть другой)
+                .allowedOrigins("http://localhost") // или адрес фронта (если из Docker, может быть другой)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);
