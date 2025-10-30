@@ -43,7 +43,7 @@ public class ResourceController {
     @GetMapping("/search")
     public ResponseEntity<List<ResourceDto>> searchResource(@AuthenticationPrincipal UserDetailsImpl principle,
                                                             @RequestParam("query") String query) {
-        List<ResourceDto> resources = resourceService.getResourcesInfo(principle.getId(), query);
+        List<ResourceDto> resources = resourceService.findResourcesInfo(principle.getId(), query);
         return ResponseEntity.status(HttpStatus.OK).body(resources);
     }
 

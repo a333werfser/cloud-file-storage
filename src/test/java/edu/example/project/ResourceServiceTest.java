@@ -270,11 +270,11 @@ public class ResourceServiceTest {
 
         resourceService.createFolder(userId, "folder/");
         resourceService.uploadResources(userId, "folder/", files);
-        List<ResourceDto> list = resourceService.getResourcesInfo(userId, "f");
+        List<ResourceDto> list = resourceService.findResourcesInfo(userId, "file");
 
-        for (ResourceDto item : list) {
-            String key = item.getPath() + item.getName();
-            assertTrue(key.startsWith("f"));
+        for (ResourceDto resource : list) {
+            String name = resource.getPath() + resource.getName();
+            assertTrue(name.startsWith("folder/file"));
         }
     }
 

@@ -89,19 +89,24 @@ public class ResourceService {
         return true;
     }
 
-    public List<ResourceDto> getResourcesInfo(Long userId, String prefix) {
-        return findResources(redirectToUserRootFolder(userId, prefix));
-    }
-
-    private List<ResourceDto> findResources(String prefix) {
+    public List<ResourceDto> findResourcesInfo(Long userId, String prefix) {
+        String path = redirectToUserRootFolder(userId, "");
         List<ResourceDto> resources = new ArrayList<>();
-        for (Result<Item> result : minioService.listObjects(prefix, true)) {
+
+        for (Result<Item> result : minioService.listObjects(path, true)) {
             try {
-                Item resourceInfo = result.get();
-                if (resourceInfo.objectName().endsWith("/")) {
-                    resources.add(folderService.mapFolderToDto(resourceInfo.objectName()));
-                } else {
-                    resources.add(fileService.mapFileToDto(resourceInfo.objectName(), resourceInfo.size()));
+                Item item = result.get();
+                String resourceInfo = item.objectName();
+                String[] names = resourceInfo.split("/");
+                for (String name : names) {
+                    if (name.startsWith(prefix)) {
+                        if (getResourceType(resourceInfo) == ResourceType.FILE) {
+                            resources.add(fileService.mapFileToDto(resourceInfo, item.size()));
+                        } else {
+                            resources.add(folderService.mapFolderToDto(resourceInfo));
+                        }
+                        break;
+                    }
                 }
             } catch (Exception exception) {
                 throw new RuntimeException(exception);
