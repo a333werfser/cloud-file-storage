@@ -3,6 +3,7 @@ package edu.example.project.controller;
 import edu.example.project.dto.AuthRequest;
 import edu.example.project.dto.ResponseMessage;
 import edu.example.project.dto.UserDto;
+import edu.example.project.exception.AuthenticationFailedException;
 import edu.example.project.exception.NotUniqueUsernameException;
 import edu.example.project.model.User;
 import edu.example.project.service.RegistrationService;
@@ -13,11 +14,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.validation.BindingResult;
@@ -70,12 +74,19 @@ public class AuthController {
     }
 
     private void performAuthentication(String username, String password, HttpServletRequest request, HttpServletResponse response) {
-        Authentication userToken = new UsernamePasswordAuthenticationToken(username, password);
-        Authentication authenticatedUser = authenticationManager.authenticate(userToken);
-        SecurityContext context = securityContextHolderStrategy.createEmptyContext();
-        context.setAuthentication(authenticatedUser);
-        securityContextHolderStrategy.setContext(context);
-        securityContextRepository.saveContext(context, request, response);
+//        try {
+            Authentication userToken = new UsernamePasswordAuthenticationToken(username, password);
+            Authentication authenticatedUser = authenticationManager.authenticate(userToken);
+            SecurityContext context = securityContextHolderStrategy.createEmptyContext();
+            context.setAuthentication(authenticatedUser);
+            securityContextHolderStrategy.setContext(context);
+            securityContextRepository.saveContext(context, request, response);
+//        } catch (AuthenticationException e) {
+//            if (e instanceof BadCredentialsException) {
+//                throw new AuthenticationFailedException("User not found");
+//            }
+//            throw e;
+//        }
     }
 
     @ExceptionHandler
@@ -89,6 +100,13 @@ public class AuthController {
         responseMessageDto.setViolations(constraintViolations);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(responseMessageDto);
     }
+
+//    @ExceptionHandler
+//    public ResponseEntity<ResponseMessage> handle(AuthenticationFailedException ex) {
+//        ResponseMessage responseMessageDto = new ResponseMessage();
+//        responseMessageDto.setMessage(ex.getMessage());
+//        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(responseMessageDto);
+//    }
 
     @ExceptionHandler
     public ResponseEntity<ResponseMessage> handle(NotUniqueUsernameException ex) {

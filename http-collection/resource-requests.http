@@ -3,6 +3,9 @@
 POST localhost:8080/api/directory HTTP/1.1
 
 ###
+GET localhost:8080/api/directory?path=
+
+###
 # @name=POST /resource
 POST localhost:8080/api/resource?path=papka/ HTTP/1.1
 Content-Type: multipart/form-data; boundary=boundary

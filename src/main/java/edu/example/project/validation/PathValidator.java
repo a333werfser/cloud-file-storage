@@ -15,7 +15,7 @@ public class PathValidator implements ConstraintValidator<ValidPath, String> {
 
     @Override
     public boolean isValid(String object, ConstraintValidatorContext context) {
-        if (object == null) {
+        if (object == null || object.isEmpty()) {
             return true;
         }
         Pattern pattern = Pattern.compile("^[a-zA-Z0-9/_\\-.]+$");

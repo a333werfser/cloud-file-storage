@@ -56,13 +56,13 @@ public class GlobalExceptionHandler {
         return buildErrorResponseMessage(ex, HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ResponseMessage> handleAll(Exception ex) {
-        if (ex instanceof AuthenticationException) {
-            throw (AuthenticationException) ex; // return AuthenticationException to ExceptionTranslationFilter
-        }
-        ResponseMessage message = new ResponseMessage();
-        message.setMessage("Internal Server Error");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(message);
-    }
+//    @ExceptionHandler(Exception.class)
+//    public ResponseEntity<ResponseMessage> handleAll(Exception ex) {
+//        if (ex instanceof AuthenticationException) {
+//            throw (AuthenticationException) ex; // return AuthenticationException to ExceptionTranslationFilter
+//        }
+//        ResponseMessage message = new ResponseMessage();
+//        message.setMessage("Internal Server Error");
+//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(message);
+//    }
 }

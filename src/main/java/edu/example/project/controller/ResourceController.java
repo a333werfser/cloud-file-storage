@@ -57,7 +57,7 @@ public class ResourceController {
 
     @PostMapping
     public ResponseEntity<List<ResourceDto>> uploadResources(@AuthenticationPrincipal UserDetailsImpl principle,
-                                                             @Valid @ModelAttribute PathRequest pathRequest, @RequestParam("file") List<MultipartFile> files
+                                                             @Valid @ModelAttribute PathRequest pathRequest, @RequestParam("object") List<MultipartFile> files
     ) throws ResourceAlreadyExistsException, ResourceNotFoundException {
         List<ResourceDto> resources = resourceService.uploadResources(principle.getId(), pathRequest.getPath(), files);
         return ResponseEntity.status(HttpStatus.CREATED).body(resources);
