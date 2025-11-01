@@ -12,13 +12,16 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void configurePathMatch(PathMatchConfigurer configurer) {
-        configurer.addPathPrefix("/api", HandlerTypePredicate.forAnnotation(RestController.class));
+        configurer.addPathPrefix("/api",
+                HandlerTypePredicate.forAnnotation(RestController.class)
+                        .and(handlerType -> !handlerType.getPackageName().startsWith("org.springdoc"))
+        );
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**") // разрешаем все пути
-                .allowedOrigins("http://localhost") // или адрес фронта (если из Docker, может быть другой)
+        registry.addMapping("/**")
+                .allowedOrigins("http://localhost")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);

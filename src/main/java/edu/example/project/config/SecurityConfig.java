@@ -33,6 +33,8 @@ public class SecurityConfig {
                                 .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
                                 .requestMatchers("/api/auth/sign-in").permitAll()
                                 .requestMatchers("/api/auth/sign-up").permitAll()
+                                .requestMatchers("/v3/api-docs/**").permitAll()
+                                .requestMatchers("/swagger-ui/**").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .securityContext(securityContext -> securityContext

@@ -1,5 +1,6 @@
 package edu.example.project.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -7,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 
 @Getter
 @Setter
@@ -37,6 +39,7 @@ public class AuthRequest {
     /**
      * Username must contain only latin characters, 0-9 digits and _. It is also case-insensitive
      */
+    @Schema(description = "username", example = "john_doe")
     @NotNull(message = USERNAME_NULL)
     @Pattern(regexp = "^[A-Za-z0-9_]+$", message = USERNAME_INVALID_PATTERN)
     @Size(min = MINIMUM_USERNAME_LENGTH, max = MAXIMUM_USERNAME_LENGTH, message = USERNAME_INVALID_SIZE)
@@ -45,6 +48,7 @@ public class AuthRequest {
     /**
      * Password must not contain whitespaces
      */
+    @Schema(description = "password", example = "s0me_$trong_p@ss")
     @NotNull(message = PASSWORD_NULL)
     @Pattern(regexp = "\\S+", message = PASSWORD_INVALID_PATTERN)
     @Size(min = MINIMUM_PASSWORD_LENGTH, max = MAXIMUM_PASSWORD_LENGTH, message = PASSWORD_INVALID_SIZE)

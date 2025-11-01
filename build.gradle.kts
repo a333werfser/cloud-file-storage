@@ -26,6 +26,7 @@ dependencies {
 	implementation("org.hibernate.validator:hibernate-validator")
 	implementation("org.glassfish.expressly:expressly:6.0.0")
 	implementation("io.minio:minio:8.6.0")
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13")
 
 	implementation(platform("org.testcontainers:testcontainers-bom:1.21.3"))
 	testImplementation("org.testcontainers:testcontainers")
