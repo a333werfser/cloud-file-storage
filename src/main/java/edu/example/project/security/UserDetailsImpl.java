@@ -1,6 +1,8 @@
 package edu.example.project.security;
 
 import edu.example.project.model.User;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.security.core.CredentialsContainer;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,6 +12,9 @@ import java.util.List;
 
 public class UserDetailsImpl implements UserDetails, CredentialsContainer {
 
+    @Getter @Setter
+    private Long id;
+
     private String username;
 
     private String password;
@@ -17,6 +22,7 @@ public class UserDetailsImpl implements UserDetails, CredentialsContainer {
     List<GrantedAuthority> authorities;
 
     public UserDetailsImpl(User user) {
+        id = user.getId();
         username = user.getUsername();
         password = user.getPassword();
     }

@@ -1,0 +1,148 @@
+package edu.example.project.service;
+
+import edu.example.project.config.BucketProperties;
+import edu.example.project.exception.ResourceNotFoundException;
+import io.minio.*;
+import io.minio.errors.*;
+import io.minio.messages.DeleteError;
+import io.minio.messages.DeleteObject;
+import io.minio.messages.Item;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class MinioService {
+
+    private final MinioClient minioClient;
+
+    private final BucketProperties bucketProperties;
+
+    protected void putObject(String path, MultipartFile file) {
+        try {
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketProperties.getDefaultName())
+                            .object(path)
+                            .stream(file.getInputStream(), file.getSize(), -1)
+                            .contentType(file.getContentType())
+                            .build()
+            );
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        }
+    }
+
+    protected void copyObject(String from, String to) {
+        try {
+            minioClient.copyObject(
+                    CopyObjectArgs.builder()
+                            .bucket(bucketProperties.getDefaultName())
+                            .object(to)
+                            .source(
+                                    CopySource.builder()
+                                            .bucket(bucketProperties.getDefaultName())
+                                            .object(from)
+                                            .build()
+                            )
+                            .build()
+            );
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        }
+    }
+
+    protected StatObjectResponse statObject(String path) throws ResourceNotFoundException {
+        try {
+            return minioClient.statObject(
+                    StatObjectArgs.builder()
+                            .bucket(bucketProperties.getDefaultName())
+                            .object(path)
+                            .build()
+            );
+        } catch (Exception exception) {
+            if (exception instanceof ErrorResponseException && exception.getMessage().equals("Object does not exist")) {
+                throw new ResourceNotFoundException("Object does not exist", exception);
+            }
+            throw new RuntimeException(exception);
+        }
+    }
+
+    protected void putEmptyObject(String path) {
+        try {
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucketProperties.getDefaultName())
+                            .object(path)
+                            .stream(new ByteArrayInputStream(new byte[]{}), 0, -1)
+                            .build()
+            );
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        }
+    }
+
+    protected Iterable<Result<Item>> listObjects(String prefix, boolean isRecursive) {
+        return minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(bucketProperties.getDefaultName())
+                        .prefix(prefix)
+                        .recursive(isRecursive)
+                        .build()
+        );
+    }
+
+    protected void removeObject(String path) {
+        try {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(bucketProperties.getDefaultName())
+                            .object(path)
+                            .build()
+            );
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        }
+    }
+
+    protected void removeObjectsFrom(String prefix) {
+        List<DeleteObject> deleteObjects = new ArrayList<>();
+        try {
+            for (Result<Item> result : listObjects(prefix, true)) {
+                Item item = result.get();
+                deleteObjects.add(new DeleteObject(item.objectName()));
+            }
+            for (Result<DeleteError> result : minioClient.removeObjects(
+                    RemoveObjectsArgs.builder()
+                            .bucket(bucketProperties.getDefaultName())
+                            .objects(deleteObjects)
+                            .build()
+            )) {
+                    result.get();
+            }
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        }
+    }
+
+    protected InputStream getObject(String path) {
+        try {
+            return minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(bucketProperties.getDefaultName())
+                            .object(path)
+                            .build()
+            );
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        }
+    }
+
+}
