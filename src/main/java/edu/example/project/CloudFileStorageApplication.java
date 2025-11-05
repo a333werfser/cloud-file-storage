@@ -19,7 +19,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 		name = "Session-based",
 		type = SecuritySchemeType.APIKEY,
 		in = SecuritySchemeIn.COOKIE,
-		paramName = "JSESSIONID"
+		paramName = "SESSION"
 )
 @SpringBootApplication
 public class CloudFileStorageApplication {

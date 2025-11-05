@@ -16,12 +16,11 @@ services:
     image: quay.io/minio/minio
     ports:
       - "9000:9000"
-      - "9001:9001"
     environment:
       - MINIO_ROOT_USER=minio
       - MINIO_ROOT_PASSWORD_FILE=/run/secrets/minio_root_password
     volumes:
-      - ./minio/data:/data
+      - minio_data:/data
     secrets:
       - minio_root_password
     command: server /data --console-address ":9001"
@@ -31,6 +30,13 @@ services:
     ports:
       - "80:80"
 
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
 secrets:
   postgres_password:
     file: ./secrets/.psql_password
@@ -39,3 +45,5 @@ secrets:
 
 volumes:
   postgres_data:
+  minio_data:
+  redis_data:
